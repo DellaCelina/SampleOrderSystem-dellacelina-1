@@ -23,13 +23,17 @@ const CRITIQUE_SCHEMA = {
   required: ['ready', 'issues'],
 }
 
+// Workaround: the harness sometimes delivers `args` as a JSON-encoded string rather than the
+// parsed object. Parse defensively so this script works either way.
+const A = typeof args === 'string' ? JSON.parse(args) : args
+
 phase('Draft')
 const draft = await agent(
-  `You are drafting docs/ARCHITECTURE.md for a feature in the repository at ${args.repoPath}.
+  `You are drafting docs/ARCHITECTURE.md for a feature in the repository at ${A.repoPath}.
 
 The approved requirement (docs/REQUIREMENT.md) is:
 """
-${args.requirementMarkdown}
+${A.requirementMarkdown}
 """
 
 Read the actual existing source files this feature will touch or interact with (this is a C++ project — look at the real headers/cpp files, not just filenames) so the design is grounded in the real code, not guessed structure. Do not write any files — just produce the document content.
@@ -42,11 +46,11 @@ Return only the full markdown for docs/ARCHITECTURE.md.`,
 
 phase('Critique')
 const critique = await agent(
-  `Critique this draft of docs/ARCHITECTURE.md against its requirement doc, for a feature in the repo at ${args.repoPath}.
+  `Critique this draft of docs/ARCHITECTURE.md against its requirement doc, for a feature in the repo at ${A.repoPath}.
 
 Requirement (docs/REQUIREMENT.md):
 """
-${args.requirementMarkdown}
+${A.requirementMarkdown}
 """
 
 Architecture draft:

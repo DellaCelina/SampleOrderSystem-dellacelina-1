@@ -55,10 +55,14 @@ ${JSON.stringify(a.phaseResults, null, 2)}`,
   },
 ]
 
+// Workaround: the harness sometimes delivers `args` as a JSON-encoded string rather than the
+// parsed object. Parse defensively so this script works either way.
+const A = typeof args === 'string' ? JSON.parse(args) : args
+
 phase('Review')
 const lensResults = await parallel(
   LENSES.map((lens) => async () => {
-    const result = await agent(lens.prompt(args), {
+    const result = await agent(lens.prompt(A), {
       phase: 'Review',
       agentType: lens.agentType,
       label: lens.key,

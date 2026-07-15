@@ -23,13 +23,17 @@ const CRITIQUE_SCHEMA = {
   required: ['ready', 'issues'],
 }
 
+// Workaround: the harness sometimes delivers `args` as a JSON-encoded string rather than the
+// parsed object. Parse defensively so this script works either way.
+const A = typeof args === 'string' ? JSON.parse(args) : args
+
 phase('Draft')
 const draft = await agent(
-  `You are drafting docs/REQUIREMENT.md for a feature in the repository at ${args.repoPath}.
+  `You are drafting docs/REQUIREMENT.md for a feature in the repository at ${A.repoPath}.
 
 Feature request from the user:
 """
-${args.featureRequest}
+${A.featureRequest}
 """
 
 First, look at the repo (existing source files, CLAUDE.md if present, any existing docs/) so the requirement is grounded in what actually exists rather than invented context. Do not write any files — just produce the document content.
@@ -42,7 +46,7 @@ Return only the full markdown for docs/REQUIREMENT.md.`,
 
 phase('Critique')
 const critique = await agent(
-  `Critique this draft of docs/REQUIREMENT.md for a feature in the repo at ${args.repoPath}. This repo is a C++ Visual Studio project (json_parser) — flag anything that ignores platform/build constraints that matter here.
+  `Critique this draft of docs/REQUIREMENT.md for a feature in the repo at ${A.repoPath}. This repo is a C++ Visual Studio project (json_parser) — flag anything that ignores platform/build constraints that matter here.
 
 Look specifically for: acceptance criteria that are vague or unverifiable, missing non-goals (scope that will quietly creep during implementation), missing constraints, and background/scope mismatches. Default to skeptical — if you can find a real gap, report it; don't rubber-stamp.
 

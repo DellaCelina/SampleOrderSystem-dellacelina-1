@@ -47,18 +47,22 @@ const DETAIL_SCHEMA = {
   required: ['detail'],
 }
 
+// Workaround: the harness sometimes delivers `args` as a JSON-encoded string rather than the
+// parsed object. Parse defensively so this script works either way.
+const A = typeof args === 'string' ? JSON.parse(args) : args
+
 phase('Split')
 const split = await agent(
-  `Decompose this ARCHITECTURE.md into an ordered list of implementation phases for the repo at ${args.repoPath}.
+  `Decompose this ARCHITECTURE.md into an ordered list of implementation phases for the repo at ${A.repoPath}.
 
 Architecture:
 """
-${args.architectureMarkdown}
+${A.architectureMarkdown}
 """
 
 Requirement it satisfies:
 """
-${args.requirementMarkdown}
+${A.requirementMarkdown}
 """
 
 For each phase give: a short id (e.g. "phase-1"), a short name, its deps (ids of phases it depends on, or empty array if none), the files/modules it touches, and a one-paragraph summary of what it implements. Two phases with disjoint "touches" and no dep relationship between them are candidates for parallel implementation later — make dependency claims honest and minimal (don't over-link phases just because they're related in spirit).`,
@@ -67,11 +71,11 @@ For each phase give: a short id (e.g. "phase-1"), a short name, its deps (ids of
 
 phase('Critique')
 const critique = await agent(
-  `Critique this phase split of an architecture for the repo at ${args.repoPath}.
+  `Critique this phase split of an architecture for the repo at ${A.repoPath}.
 
 Architecture:
 """
-${args.architectureMarkdown}
+${A.architectureMarkdown}
 """
 
 Proposed phases (JSON):
@@ -95,7 +99,7 @@ ${JSON.stringify(split.phases, null, 2)}
 
 Architecture for reference:
 """
-${args.architectureMarkdown}
+${A.architectureMarkdown}
 """`,
     { phase: 'Revise', agentType: 'pc-planner', schema: SPLIT_SCHEMA }
   )
@@ -106,7 +110,7 @@ phase('Expand')
 const expanded = await parallel(
   phases.map((p) => async () => {
     const result = await agent(
-      `Write the full implementation-plan detail for one phase of a feature in the repo at ${args.repoPath}. This text will go directly under this phase's heading in docs/impl/.../IMPLEMENT.md and must be detailed enough that someone doing TDD on it later doesn't need to re-derive design decisions.
+      `Write the full implementation-plan detail for one phase of a feature in the repo at ${A.repoPath}. This text will go directly under this phase's heading in docs/impl/.../IMPLEMENT.md and must be detailed enough that someone doing TDD on it later doesn't need to re-derive design decisions.
 
 Phase: ${p.name} (id: ${p.id})
 Summary: ${p.summary}
@@ -115,7 +119,7 @@ Depends on: ${p.deps.length ? p.deps.join(', ') : 'none'}
 
 Full architecture for context:
 """
-${args.architectureMarkdown}
+${A.architectureMarkdown}
 """
 
 Cover: the concrete behavior to implement, the unit tests that should exist (including edge cases), and any interface/signature this phase must expose for phases that depend on it. Return only the detail text (no heading, that's added by the caller).`,

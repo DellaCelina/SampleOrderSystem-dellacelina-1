@@ -24,15 +24,20 @@ const VERIFY_SCHEMA = {
 // only including phases in one call that have no dependency on each other and don't touch overlapping files.
 // args.repoPath, args.requirementMarkdown, args.architectureMarkdown are shared context.
 
-const isolation = args.overlappingFiles ? 'worktree' : undefined
+// Workaround: the harness sometimes delivers `args` as a JSON-encoded string rather than the
+// parsed object (observed to cause `pipeline() expects an array` when args.phases is read off a
+// string). Parse defensively so this script works either way.
+const A = typeof args === 'string' ? JSON.parse(args) : args
+
+const isolation = A.overlappingFiles ? 'worktree' : undefined
 
 const results = await pipeline(
-  args.phases,
+  A.phases,
 
   // 4-1 Red
   (phase) =>
     agent(
-      `Write unit test(s) for this implementation phase, in the repo at ${args.repoPath}. It's expected/fine if they fail or don't compile yet — a phase in Red just needs tests that actually exercise the target behavior.
+      `Write unit test(s) for this implementation phase, in the repo at ${A.repoPath}. It's expected/fine if they fail or don't compile yet — a phase in Red just needs tests that actually exercise the target behavior.
 
 Phase: ${phase.name} (id: ${phase.id})
 Detail:
@@ -48,7 +53,7 @@ Find and follow the repo's existing test setup/conventions before adding new one
   // 4-2 Green
   (redSummary, phase) =>
     agent(
-      `Implement this phase in the repo at ${args.repoPath} so the unit tests just written pass. Keep it minimal — don't reach into work that belongs to other phases.
+      `Implement this phase in the repo at ${A.repoPath} so the unit tests just written pass. Keep it minimal — don't reach into work that belongs to other phases.
 
 Phase: ${phase.name} (id: ${phase.id})
 Detail:
@@ -67,7 +72,7 @@ Build and actually run the tests to confirm they pass before returning. Return a
   // 4-3 Refactor
   (greenSummary, phase) =>
     agent(
-      `Review the implementation just added for this phase in ${args.repoPath} and refactor anything worth cleaning up — duplication, naming, structure. Re-run the tests afterward and confirm they're still green. If there's genuinely nothing worth refactoring, say so explicitly rather than making busywork changes.
+      `Review the implementation just added for this phase in ${A.repoPath} and refactor anything worth cleaning up — duplication, naming, structure. Re-run the tests afterward and confirm they're still green. If there's genuinely nothing worth refactoring, say so explicitly rather than making busywork changes.
 
 Phase: ${phase.name} (id: ${phase.id})
 What was just implemented:
@@ -91,17 +96,17 @@ ${phase.detail}
 """
 Requirement doc:
 """
-${args.requirementMarkdown}
+${A.requirementMarkdown}
 """
 Architecture doc:
 """
-${args.architectureMarkdown}
+${A.architectureMarkdown}
 """
 Work done so far (post-refactor):
 """
 ${refactorSummary}
 """
-Repo: ${args.repoPath}
+Repo: ${A.repoPath}
 
 List every file actually changed for this phase.`,
       { phase: 'Verify', agentType: 'pc-verifier', label: `verify:${phase.id}`, schema: VERIFY_SCHEMA, isolation }
