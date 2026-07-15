@@ -7,6 +7,11 @@
 
 Implement the Sample, Order, and ProductionQueueEntry plain data structs plus their ToJson/FromJson pairs, and the single pair of free functions TimePointToIso8601/ParseIso8601, concretely located in SampleOrderSystem/Core/Iso8601.h/.cpp (alongside IClock in Core, but its own header/source pair, not inlined per-model), used by every model's ToJson/FromJson to convert IClock::TimePoint to/from the ISO 8601 UTC string format, so there is exactly one timestamp-formatting code path for the round-trip and FIFO-chain tests to exercise. Depends on IClock's TimePoint type (phase-1) and JsonValue (phase-2) but not on JsonFileStore/SchemaValidator (phase-3), so it can be built in parallel with phase-3. Add Models/*.h/.cpp and Core/Iso8601.h/.cpp to SampleOrderSystemTests.vcxproj so the new tests compile.
 
+**Test framework note:** written using GoogleTest (`TEST(Suite, Case)`/`EXPECT_*`), not Catch2 —
+see `docs/impl/s-semi/phase-01-test-scaffolding-clock/DETAIL.md`'s superseding note for why. The
+"Catch2" mention in the Unit tests heading below is stale; the actual committed
+`Core/Iso8601Tests.cpp`/`Models/*Tests.cpp` use GoogleTest.
+
 ## Detail
 
 ## Scope
