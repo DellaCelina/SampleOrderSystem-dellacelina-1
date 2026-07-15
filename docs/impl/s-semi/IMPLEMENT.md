@@ -138,14 +138,14 @@ above):
 
 - **OrderService** — `SubmitOrder`, `ListPendingApprovals`, `Approve` (settle-first, then
   `max(0, unclaimed)` decision), `Reject`, `Release`. Covers the 50/100/100 acceptance scenario and
-  settle-then-decide ordering. Full detail: [phase-07-order-service/DETAIL.md](phase-07-order-service/DETAIL.md).
+  settle-then-decide ordering. Full detail: [phase-07-services/DETAIL-order-service.md](phase-07-services/DETAIL-order-service.md).
 - **MonitoringService + ProductionLineViewService** — both settle-first, read-only query services.
-  Full detail: [phase-08-monitoring-production-view-service/DETAIL.md](phase-08-monitoring-production-view-service/DETAIL.md).
+  Full detail: [phase-07-services/DETAIL-monitoring-production-view-service.md](phase-07-services/DETAIL-monitoring-production-view-service.md).
 - **DummyDataGenerator** — schema-driven random Sample/Order generation across all five statuses,
   writing directly through repositories but **calling ProductionService's pure compute functions**
   (`ComputeShortfall`/`ComputeActualQuantity`/`ComputeCompletionTime`) to keep generated `Producing`
   orders' queue entries consistent with real ones. Full detail:
-  [phase-09-dummy-data-generator/DETAIL.md](phase-09-dummy-data-generator/DETAIL.md).
+  [phase-07-services/DETAIL-dummy-data-generator.md](phase-07-services/DETAIL-dummy-data-generator.md).
 
 ## Phase 8 (consolidated): Remaining UI — Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI
 
@@ -155,15 +155,15 @@ above):
 Merges the old Phase 11/12/13 into one sequential implementation pass:
 
 - **Order UI** — console rendering + controller for submission/pending-list/approve/reject/release,
-  wired to `OrderService`. Full detail: [phase-11-order-ui/DETAIL.md](phase-11-order-ui/DETAIL.md).
+  wired to `OrderService`. Full detail: [phase-08-ui/DETAIL-order-ui.md](phase-08-ui/DETAIL-order-ui.md).
 - **Monitoring & Production Line UI** — console views for status counts, stock/Depleted-InStock
   labels, and production-line head+tail display, plus the controller calling
   `MonitoringService`/`ProductionLineViewService`. Full detail:
-  [phase-12-monitoring-production-ui/DETAIL.md](phase-12-monitoring-production-ui/DETAIL.md).
+  [phase-08-ui/DETAIL-monitoring-production-ui.md](phase-08-ui/DETAIL-monitoring-production-ui.md).
 - **Data Monitor & Dummy Data UI** — `DataMonitorView`/`DataMonitorController` (settle-first, then
   render current JSON state) and `DummyDataController` (invokes `DummyDataGenerator` outside the
   interactive menus). Full detail:
-  [phase-13-data-monitor-dummy-ui/DETAIL.md](phase-13-data-monitor-dummy-ui/DETAIL.md).
+  [phase-08-ui/DETAIL-data-monitor-dummy-ui.md](phase-08-ui/DETAIL-data-monitor-dummy-ui.md).
 
 ## Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags
 
@@ -174,4 +174,4 @@ Same scope as the old Phase 14: wires everything together — constructs `System
 repositories/services, exposes every feature via `MainMenuController`'s interactive loop, and
 supports `--dummy-data`/`--data-monitor` CLI flags that run directly and exit. Pins down
 `data/`/`schema/` resolution relative to the executable path. Final integration point — no
-parallelism left after this. Full detail: [phase-14-main-wiring/DETAIL.md](phase-14-main-wiring/DETAIL.md).
+parallelism left after this. Full detail: [phase-09-main-wiring/DETAIL.md](phase-09-main-wiring/DETAIL.md).

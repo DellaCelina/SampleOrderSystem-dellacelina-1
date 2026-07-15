@@ -1,6 +1,6 @@
-# Phase 14: MainMenuController + main.cpp wiring and CLI flags
+# Phase 9 (consolidated, formerly Phase 14): MainMenuController + main.cpp wiring and CLI flags
 
-**Depends on:** Phase 10 (sample-ui), Phase 11 (order-ui), Phase 12 (monitoring-production-ui), Phase 13 (data-monitor-dummy-ui)
+**Depends on:** Phase 10 (sample-ui), Phase 8 (consolidated UI: order-ui, monitoring-production-ui, data-monitor-dummy-ui)
 **Touches:** `SampleOrderSystem/Controllers/MainMenuController.h`, `SampleOrderSystem/Controllers/MainMenuController.cpp`, `SampleOrderSystem/main.cpp`
 
 ## Summary
