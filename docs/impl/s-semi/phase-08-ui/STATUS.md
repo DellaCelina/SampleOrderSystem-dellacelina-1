@@ -12,12 +12,16 @@ Merged into this phase's directory purely for bookkeeping; no remaining work for
 Red/Green/Refactor/Commit/Review checklist below covers only the three sub-features that are
 actually still pending: Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI.
 
-- [ ] 4-1 Red: tests written (Order UI / Monitoring & Production Line UI / Data Monitor & Dummy Data UI only — Sample UI already done)
-- [ ] 4-2 Green: implementation passes tests
-- [ ] 4-3 Refactor: cleaned up, tests still pass
-- [ ] 4-4 Commit: committed
-- [ ] 4-5 pc-reviewer (covers verify): reviewed, findings applied
+- [x] 4-1 Red: tests written (Order UI / Monitoring & Production Line UI / Data Monitor & Dummy Data UI only — Sample UI already done)
+- [x] 4-2 Green: implementation passes tests
+- [x] 4-3 Refactor: cleaned up, tests still pass
+- [x] 4-4 Commit: committed
+- [x] 4-5 pc-reviewer: **skipped by explicit user instruction** — moved straight to the next phase without a review pass for this phase.
 
 ## Notes
 
-(none yet)
+Implemented and committed (`5856ea9`): OrderView/OrderController, MonitoringView/ProductionLineView/
+MonitoringController, DataMonitorView/DataMonitorController/DummyDataController. 351/351 tests pass
+(full suite, includes Phase 7's fixes). The pc-reviewer pass for this phase was started but stopped
+by the user, who then explicitly said to skip review and move on rather than resume it — so this
+phase closes without a recorded review, unlike every prior phase.

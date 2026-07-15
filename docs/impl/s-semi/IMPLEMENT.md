@@ -33,7 +33,7 @@ GoogleTest/GoogleMock.
 - [x] Phase 5: Repositories + order-number sequence derivation (deps: Phase 3, Phase 4)
 - [x] Phase 6: ProductionService — shortfall math, FIFO completion time, lazy settlement (deps: Phase 1, Phase 5)
 - [x] Phase 7 (consolidated): Remaining services — OrderService, MonitoringService, ProductionLineViewService, DummyDataGenerator (deps: Phase 5, Phase 6)
-- [ ] Phase 8 (consolidated): UI — Sample UI (already implemented, merged in from the old standalone Phase 10), Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI (deps: Phase 5, Phase 7)
+- [x] Phase 8 (consolidated): UI — Sample UI (already implemented, merged in from the old standalone Phase 10), Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI (deps: Phase 5, Phase 7)
 - [ ] Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags (deps: Phase 8)
 
 **Consolidation note (post Phase 6/10):** the remaining work was originally split into 7 finer
@@ -166,7 +166,7 @@ Merges the old Phase 11/12/13 into one sequential implementation pass:
 
 ## Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags
 
-**Depends on:** Phase 8, Phase 10
+**Depends on:** Phase 8
 **Touches:** `SampleOrderSystem/Controllers/MainMenuController.h/.cpp`, `SampleOrderSystem/main.cpp`
 
 Same scope as the old Phase 14: wires everything together — constructs `SystemClock` + all
@@ -174,3 +174,7 @@ repositories/services, exposes every feature via `MainMenuController`'s interact
 supports `--dummy-data`/`--data-monitor` CLI flags that run directly and exit. Pins down
 `data/`/`schema/` resolution relative to the executable path. Final integration point — no
 parallelism left after this. Full detail: [phase-09-main-wiring/DETAIL.md](phase-09-main-wiring/DETAIL.md).
+
+**Process note:** per explicit user direction, from this phase onward the TDD Red/Green/Refactor
+cycle is skipped — implement directly (Green-only), verify by building both projects and running
+the app manually, and skip the pc-reviewer gate too unless the user asks for it again.
