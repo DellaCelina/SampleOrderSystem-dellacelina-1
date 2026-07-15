@@ -177,6 +177,29 @@ TEST_F(OrderServiceTest, ListPendingApprovalsReturnsEmptyWhenThereAreNoReservedO
     EXPECT_TRUE(m_service->ListPendingApprovals().empty());
 }
 
+// ---- ListReleasable ----
+
+TEST_F(OrderServiceTest, ListReleasableReturnsOnlyConfirmedOrdersExcludingAllOtherStatuses) {
+    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 100)));
+    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 5, OrderStatus::Reserved});
+    m_orders->Add(Order{"ORD-0002", "SMP-001", "Acme", 5, OrderStatus::Confirmed});
+    m_orders->Add(Order{"ORD-0003", "SMP-001", "Acme", 5, OrderStatus::Producing});
+    m_orders->Add(Order{"ORD-0004", "SMP-001", "Acme", 5, OrderStatus::Released});
+    m_orders->Add(Order{"ORD-0005", "SMP-001", "Acme", 5, OrderStatus::Rejected});
+
+    std::vector<Order> releasable = m_service->ListReleasable();
+
+    ASSERT_EQ(releasable.size(), 1u);
+    EXPECT_EQ(releasable[0].orderNumber, "ORD-0002");
+}
+
+TEST_F(OrderServiceTest, ListReleasableReturnsEmptyWhenThereAreNoConfirmedOrders) {
+    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 100)));
+    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 5, OrderStatus::Reserved});
+
+    EXPECT_TRUE(m_service->ListReleasable().empty());
+}
+
 // ---- Approve: sufficient stock ----
 
 TEST_F(OrderServiceTest, ApproveWithSufficientUnclaimedStockConfirmsWithoutStockOrQueueChange) {

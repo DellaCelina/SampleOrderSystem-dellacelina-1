@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "Controllers/OrderController.h"
 #include "Views/OrderView.h"
@@ -154,7 +154,7 @@ TEST_F(OrderControllerTest, MenuDispatchEofActsAsBackAndReturnsWithoutThrowing) 
 TEST_F(OrderControllerTest, SubmitWithValidFieldsCreatesReservedOrderAndOutputContainsItsNumber) {
     ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 0.9, 100)));
 
-    std::istringstream in(ScriptedInput({ "1", "SMP-001", "Acme Corp", "10", "4" }));
+    std::istringstream in(ScriptedInput({ "1", "SMP-001", "Acme Corp", "10", "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -168,7 +168,7 @@ TEST_F(OrderControllerTest, SubmitWithValidFieldsCreatesReservedOrderAndOutputCo
 }
 
 TEST_F(OrderControllerTest, SubmitWithBlankSampleIdNeverCallsServiceAndRendersFailure) {
-    std::istringstream in(ScriptedInput({ "1", "", "Acme Corp", "10", "4" }));
+    std::istringstream in(ScriptedInput({ "1", "", "Acme Corp", "10", "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -176,13 +176,13 @@ TEST_F(OrderControllerTest, SubmitWithBlankSampleIdNeverCallsServiceAndRendersFa
     controller.Run();
 
     EXPECT_TRUE(m_orders->FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos);
+    EXPECT_NE(out.str().find("오류"), std::string::npos);
 }
 
 TEST_F(OrderControllerTest, SubmitWithNonNumericQuantityNeverCallsServiceAndRendersFailure) {
     ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 0.9, 100)));
 
-    std::istringstream in(ScriptedInput({ "1", "SMP-001", "Acme Corp", "abc", "4" }));
+    std::istringstream in(ScriptedInput({ "1", "SMP-001", "Acme Corp", "abc", "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -190,13 +190,13 @@ TEST_F(OrderControllerTest, SubmitWithNonNumericQuantityNeverCallsServiceAndRend
     controller.Run();
 
     EXPECT_TRUE(m_orders->FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos);
+    EXPECT_NE(out.str().find("오류"), std::string::npos);
 }
 
 TEST_F(OrderControllerTest, SubmitWithZeroOrNegativeQuantityNeverCallsServiceAndRendersFailure) {
     ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 0.9, 100)));
 
-    std::istringstream in(ScriptedInput({ "1", "SMP-001", "Acme Corp", "0", "4" }));
+    std::istringstream in(ScriptedInput({ "1", "SMP-001", "Acme Corp", "0", "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -204,11 +204,11 @@ TEST_F(OrderControllerTest, SubmitWithZeroOrNegativeQuantityNeverCallsServiceAnd
     controller.Run();
 
     EXPECT_TRUE(m_orders->FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos);
+    EXPECT_NE(out.str().find("오류"), std::string::npos);
 }
 
 TEST_F(OrderControllerTest, SubmitWithUnknownSampleIdCallsServiceAndRendersServiceErrorWithoutCreatingAnOrder) {
-    std::istringstream in(ScriptedInput({ "1", "SMP-999", "Acme Corp", "10", "4" }));
+    std::istringstream in(ScriptedInput({ "1", "SMP-999", "Acme Corp", "10", "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -216,13 +216,13 @@ TEST_F(OrderControllerTest, SubmitWithUnknownSampleIdCallsServiceAndRendersServi
     controller.Run();
 
     EXPECT_TRUE(m_orders->FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos);
+    EXPECT_NE(out.str().find("오류"), std::string::npos);
 }
 
 // ---- Approve / Reject ----
 
 TEST_F(OrderControllerTest, ApproveRejectWithEmptyPendingListShowsNoPendingApprovalsAndDoesNotHang) {
-    std::istringstream in(ScriptedInput({ "2", "4" }));
+    std::istringstream in(ScriptedInput({ "2", "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -237,7 +237,7 @@ TEST_F(OrderControllerTest, ApproveWithSufficientUnclaimedStockTransitionsOrderT
     ASSERT_TRUE(submitted.Ok());
     const std::string orderNumber = submitted.Value().orderNumber;
 
-    std::istringstream in(ScriptedInput({ "2", orderNumber, "A", "0", "4" }));
+    std::istringstream in(ScriptedInput({ "2", orderNumber, "A", "", "0", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -256,7 +256,7 @@ TEST_F(OrderControllerTest, ApproveWithInsufficientStockTransitionsOrderToProduc
     ASSERT_TRUE(submitted.Ok());
     const std::string orderNumber = submitted.Value().orderNumber;
 
-    std::istringstream in(ScriptedInput({ "2", orderNumber, "A", "0", "4" }));
+    std::istringstream in(ScriptedInput({ "2", orderNumber, "A", "", "0", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -275,7 +275,7 @@ TEST_F(OrderControllerTest, RejectTransitionsOrderToRejectedAndRemovesItFromSubs
     ASSERT_TRUE(submitted.Ok());
     const std::string orderNumber = submitted.Value().orderNumber;
 
-    std::istringstream in(ScriptedInput({ "2", orderNumber, "R", "0", "4" }));
+    std::istringstream in(ScriptedInput({ "2", orderNumber, "R", "", "0", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -299,7 +299,7 @@ TEST_F(OrderControllerTest, ApproveRejectWithInvalidActionLetterLeavesOrderUntou
     ASSERT_TRUE(submitted.Ok());
     const std::string orderNumber = submitted.Value().orderNumber;
 
-    std::istringstream in(ScriptedInput({ "2", orderNumber, "x", "0", "4" }));
+    std::istringstream in(ScriptedInput({ "2", orderNumber, "x", "", "0", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -350,7 +350,7 @@ TEST_F(OrderControllerTest, ApproveRejectLoopContinuesAfterOneActionAllowingASec
     const std::string firstNumber = first.Value().orderNumber;
     const std::string secondNumber = second.Value().orderNumber;
 
-    std::istringstream in(ScriptedInput({ "2", firstNumber, "A", secondNumber, "R", "0", "4" }));
+    std::istringstream in(ScriptedInput({ "2", firstNumber, "A", "", secondNumber, "R", "", "0", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -374,7 +374,7 @@ TEST_F(OrderControllerTest, ReleaseWithConfirmedOrderTransitionsToReleased) {
     const std::string orderNumber = submitted.Value().orderNumber;
     ASSERT_TRUE(m_service->Approve(orderNumber, *m_clock).Ok());
 
-    std::istringstream in(ScriptedInput({ "3", orderNumber, "4" }));
+    std::istringstream in(ScriptedInput({ "3", orderNumber, "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -389,11 +389,21 @@ TEST_F(OrderControllerTest, ReleaseWithConfirmedOrderTransitionsToReleased) {
 
 TEST_F(OrderControllerTest, ReleaseWithOrderStillReservedRendersFailureWithNoStateChange) {
     ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 0.9, 100)));
+    // HandleRelease now lists only CONFIRMED orders before prompting (per the
+    // "show the releasable list first" UX fix), so a second, already-confirmed
+    // order is seeded purely to make that list non-empty; the actual order
+    // under test is typed in by number (not chosen from the list) and is
+    // still Reserved, so the service call it triggers still fails exactly as
+    // before.
+    OrderServiceResult<Order> confirmed = m_service->SubmitOrder("SMP-001", "Other Corp", 5);
+    ASSERT_TRUE(confirmed.Ok());
+    ASSERT_TRUE(m_service->Approve(confirmed.Value().orderNumber, *m_clock).Ok());
+
     OrderServiceResult<Order> submitted = m_service->SubmitOrder("SMP-001", "Acme Corp", 10);
     ASSERT_TRUE(submitted.Ok());
     const std::string orderNumber = submitted.Value().orderNumber;
 
-    std::istringstream in(ScriptedInput({ "3", orderNumber, "4" }));
+    std::istringstream in(ScriptedInput({ "3", orderNumber, "", "4" }));
     std::ostringstream out;
     OrderView view(out);
     OrderController controller(*m_service, view, in, *m_clock);
@@ -403,7 +413,25 @@ TEST_F(OrderControllerTest, ReleaseWithOrderStillReservedRendersFailureWithNoSta
     std::optional<Order> order = m_orders->FindByOrderNumber(orderNumber);
     ASSERT_TRUE(order.has_value());
     EXPECT_EQ(order->status, OrderStatus::Reserved);
-    EXPECT_NE(out.str().find("Error"), std::string::npos);
+    EXPECT_NE(out.str().find("오류"), std::string::npos);
+}
+
+TEST_F(OrderControllerTest, ReleaseWithNoConfirmedOrdersShowsNoReleasableOrdersMessageAndDoesNotHang) {
+    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 0.9, 100)));
+    OrderServiceResult<Order> submitted = m_service->SubmitOrder("SMP-001", "Acme Corp", 10);
+    ASSERT_TRUE(submitted.Ok());  // stays RESERVED -- never approved, so nothing is releasable
+
+    std::istringstream in(ScriptedInput({ "3", "", "4" }));
+    std::ostringstream out;
+    OrderView view(out);
+    OrderController controller(*m_service, view, in, *m_clock);
+
+    EXPECT_NO_THROW(controller.Run());
+    EXPECT_FALSE(out.str().empty());
+
+    std::optional<Order> order = m_orders->FindByOrderNumber(submitted.Value().orderNumber);
+    ASSERT_TRUE(order.has_value());
+    EXPECT_EQ(order->status, OrderStatus::Reserved);
 }
 
 TEST_F(OrderControllerTest, ReleaseWithBlankInputMakesNoServiceCall) {

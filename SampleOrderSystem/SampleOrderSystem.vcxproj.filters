@@ -24,6 +24,9 @@
     <ClInclude Include="Core\SystemClock.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Console.h">
+      <Filter>Core</Filter>
+    </ClInclude>
     <ClInclude Include="Json\JsonValue.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -48,6 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\SystemClock.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Console.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="Json\JsonValue.cpp">

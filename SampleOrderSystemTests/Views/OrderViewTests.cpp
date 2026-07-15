@@ -173,3 +173,31 @@ TEST(OrderViewTests, ShowReleaseResultSuccessAndFailure) {
     failureView.ShowReleaseResult(false, "ORD-0007", "not CONFIRMED");
     EXPECT_NE(failureOut.str().find("not CONFIRMED"), std::string::npos);
 }
+
+TEST(OrderViewTests, ShowReleasableOrdersRendersOneRowPerOrderWithAllRequiredFields) {
+    std::ostringstream out;
+    OrderView view(out);
+
+    std::vector<Order> orders = {
+        MakeOrder("ORD-0001", "SMP-001", "Acme Corp", 10, OrderStatus::Confirmed),
+        MakeOrder("ORD-0002", "SMP-002", "Globex", 25, OrderStatus::Confirmed),
+    };
+
+    view.ShowReleasableOrders(orders);
+
+    const std::string text = out.str();
+    EXPECT_NE(text.find("ORD-0001"), std::string::npos);
+    EXPECT_NE(text.find("SMP-001"), std::string::npos);
+    EXPECT_NE(text.find("Acme Corp"), std::string::npos);
+    EXPECT_NE(text.find("10"), std::string::npos);
+    EXPECT_NE(text.find("ORD-0002"), std::string::npos);
+}
+
+TEST(OrderViewTests, ShowNoReleasableOrdersIsNonEmpty) {
+    std::ostringstream out;
+    OrderView view(out);
+
+    view.ShowNoReleasableOrders();
+
+    EXPECT_FALSE(out.str().empty());
+}

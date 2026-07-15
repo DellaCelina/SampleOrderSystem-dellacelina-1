@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <iostream>
 #include <string>
 #include <vector>
@@ -19,6 +19,8 @@ public:
     std::string PromptLine(const std::string& promptText) const;
 
 private:
+    void WriteHeader(const std::string& title) const;
+
     std::istream& in_;
     std::ostream& out_;
 };

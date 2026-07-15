@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <iostream>
 #include <vector>
 
@@ -12,5 +12,7 @@ public:
     void RenderSampleStocks(const std::vector<SampleStockInfo>& stocks);
 
 private:
+    void WriteHeader(const std::string& title) const;
+
     std::ostream& out_;
 };

@@ -20,6 +20,7 @@ private:
     static bool TryParsePositiveInt(const std::string& text, int& out);
     static std::string Trim(const std::string& text);
     bool ReadLine(std::string& out);
+    void WaitForEnter();
 
     OrderService& orderService_;
     OrderView& view_;

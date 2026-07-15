@@ -1,9 +1,11 @@
-#include "MainMenuController.h"
+﻿#include "MainMenuController.h"
 
 #include <cctype>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+
+#include "../Core/Console.h"
 
 namespace {
 
@@ -65,7 +67,7 @@ CliArgs ParseCliArgs(int argc, char* const argv[]) {
             if (TryParseInt(valueText, parsed)) {
                 if (parsed < 0) {
                     args.mode = CliMode::Error;
-                    args.errorMessage = "Invalid --dummy-data value (must be non-negative): " + valueText + "\n";
+                    args.errorMessage = "오류: --dummy-data 값이 올바르지 않습니다 (0 이상이어야 합니다): " + valueText + "\n";
                     return args;
                 }
                 dummyCount = parsed;
@@ -84,7 +86,7 @@ CliArgs ParseCliArgs(int argc, char* const argv[]) {
     }
 
     if (!unrecognized.empty()) {
-        std::string message = "Unknown argument(s):";
+        std::string message = "오류: 알 수 없는 인자입니다:";
         for (const std::string& u : unrecognized) {
             message += " " + u;
         }
@@ -96,7 +98,7 @@ CliArgs ParseCliArgs(int argc, char* const argv[]) {
 
     if (sawDummyData && sawDataMonitor) {
         args.mode = CliMode::Error;
-        args.errorMessage = "Cannot combine --dummy-data and --data-monitor\n";
+        args.errorMessage = "오류: --dummy-data와 --data-monitor는 함께 사용할 수 없습니다\n";
         return args;
     }
 
@@ -126,17 +128,17 @@ MainMenuController::MainMenuController(SampleController& sampleController, Order
       dummyDataController_(dummyDataController) {}
 
 void MainMenuController::PrintMenu() const {
-    std::cout << "\n=== S-Semi Sample Order System ===\n"
-              << "1. Register sample\n"
-              << "2. List all samples\n"
-              << "3. Search samples\n"
-              << "4. Order management (submit / approve / reject / release)\n"
-              << "5. Show monitoring summary\n"
-              << "6. Show production line\n"
-              << "7. Data monitor\n"
-              << "8. Generate dummy data\n"
-              << "0. Exit\n"
-              << "Choose: ";
+    std::cout << HeaderBlock()
+              << "[1] 시료 등록\n"
+              << "[2] 시료 목록 조회\n"
+              << "[3] 시료 검색\n"
+              << "[4] 주문 관리\n"
+              << "[5] 모니터링 요약\n"
+              << "[6] 생산 라인 조회\n"
+              << "[7] 데이터 모니터\n"
+              << "[8] 더미 데이터 생성\n"
+              << "[0] 종료\n"
+              << "선택 > ";
 }
 
 std::optional<int> MainMenuController::ReadMenuChoice() const {
@@ -152,7 +154,7 @@ std::optional<int> MainMenuController::ReadMenuChoice() const {
             return value;
         }
 
-        std::cout << "Invalid input. Please enter a number.\n";
+        std::cout << "오류: 숫자를 입력해 주세요.\n";
         PrintMenu();
     }
 }
@@ -169,6 +171,18 @@ int MainMenuController::PromptInt(const std::string& promptText, int defaultValu
     }
     return defaultValue;
 }
+
+namespace {
+// Read-only/result screens (list, search, monitoring, production line, data
+// monitor, register/dummy-data results) render their content and then return
+// immediately; without a pause here, the *next* loop iteration's PrintMenu()
+// clears the screen before the user has had a chance to read what was just
+// shown. Menu item 4 (order submenu) is exempt: it owns its own input loop
+// and already blocks on a menu choice before anything gets cleared again.
+bool ChoiceNeedsPauseAfterDispatch(int choice) {
+    return choice != 4;
+}
+}  // namespace
 
 void MainMenuController::Dispatch(int choice) {
     try {
@@ -195,20 +209,30 @@ void MainMenuController::Dispatch(int choice) {
                 dataMonitorController_.Run();
                 break;
             case 8: {
-                const int sampleCount = PromptInt("Enter number of samples to generate [10]: ", 10);
-                const int orderCount = PromptInt("Enter number of orders to generate [20]: ", 20);
+                const int sampleCount = PromptInt("생성할 시료 개수 [10] > ", 10);
+                const int orderCount = PromptInt("생성할 주문 개수 [20] > ", 20);
                 dummyDataController_.Run(sampleCount, orderCount);
                 break;
             }
             default:
-                std::cout << "Invalid choice: " << choice << "\n";
+                std::cout << "오류: 올바르지 않은 선택입니다: " << choice << "\n";
                 break;
         }
     } catch (const std::exception& ex) {
-        std::cout << "Error: " << ex.what() << "\n";
+        std::cout << "오류: " << ex.what() << "\n";
     } catch (...) {
-        std::cout << "Error: an unknown error occurred\n";
+        std::cout << "오류: 알 수 없는 오류가 발생했습니다\n";
     }
+
+    if (ChoiceNeedsPauseAfterDispatch(choice)) {
+        PressEnterToContinue();
+    }
+}
+
+void MainMenuController::PressEnterToContinue() const {
+    std::cout << "\n계속하려면 Enter 키를 누르세요...";
+    std::string discarded;
+    std::getline(std::cin, discarded);
 }
 
 int MainMenuController::Run() {

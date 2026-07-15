@@ -24,6 +24,11 @@ struct SampleStockInfo {
     std::string sampleId;
     std::string sampleName;
     int currentStock = 0;
+    // currentStock minus quantity already claimed by that sample's own
+    // PRODUCING/CONFIRMED orders -- i.e. the same "unclaimed stock" an
+    // incoming order's approval would be checked against (see
+    // OrderService::ComputeUnclaimedStock). Never negative.
+    int unclaimedStock = 0;
     StockLevel level = StockLevel::InStock;  // Depleted iff currentStock == 0
 };
 

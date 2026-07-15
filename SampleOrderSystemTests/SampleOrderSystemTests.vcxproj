@@ -77,6 +77,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>.;..\SampleOrderSystem;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -96,6 +97,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>.;..\SampleOrderSystem;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -113,6 +115,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>.;..\SampleOrderSystem;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -132,6 +135,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>.;..\SampleOrderSystem;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -146,6 +150,7 @@
     <ClInclude Include="FakeClock.h" />
     <ClInclude Include="..\SampleOrderSystem\Core\IClock.h" />
     <ClInclude Include="..\SampleOrderSystem\Core\SystemClock.h" />
+    <ClInclude Include="..\SampleOrderSystem\Core\Console.h" />
     <ClInclude Include="..\SampleOrderSystem\Json\JsonValue.h" />
     <ClInclude Include="..\SampleOrderSystem\Json\JsonParser.h" />
     <ClInclude Include="..\SampleOrderSystem\Json\JsonWriter.h" />
@@ -180,6 +185,7 @@
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="ClockTests.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Core\SystemClock.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Core\Console.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Json\JsonValue.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Json\JsonParser.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Json\JsonWriter.cpp" />

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "Views/MonitoringView.h"
 #include "Views/ProductionLineView.h"
@@ -81,8 +81,8 @@ TEST(MonitoringViewTests, RenderSampleStocksLabelsDepletedAndInStockCorrectlyInB
     EXPECT_NE(text.find("SMP-001"), std::string::npos);
     EXPECT_NE(text.find("SMP-002"), std::string::npos);
     EXPECT_NE(text.find("42"), std::string::npos);
-    EXPECT_NE(text.find("Depleted"), std::string::npos);
-    EXPECT_NE(text.find("InStock"), std::string::npos);
+    EXPECT_NE(text.find("고갈"), std::string::npos);
+    EXPECT_NE(text.find("여유"), std::string::npos);
 }
 
 TEST(MonitoringViewTests, RenderSampleStocksWithEmptyListRendersAnExplicitEmptyStateMessage) {

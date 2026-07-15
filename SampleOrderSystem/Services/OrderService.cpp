@@ -49,6 +49,16 @@ std::vector<Order> OrderService::ListPendingApprovals() const {
     return result;
 }
 
+std::vector<Order> OrderService::ListReleasable() const {
+    std::vector<Order> result;
+    for (const Order& order : orderRepository_.FindAll()) {
+        if (order.status == OrderStatus::Confirmed) {
+            result.push_back(order);
+        }
+    }
+    return result;
+}
+
 int OrderService::ComputeUnclaimedStock(const std::string& sampleId) const {
     std::optional<Sample> sample = sampleRepository_.FindById(sampleId);
     int currentStock = sample.has_value() ? sample->currentStock : 0;

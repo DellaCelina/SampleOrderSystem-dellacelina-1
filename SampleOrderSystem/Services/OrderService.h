@@ -67,6 +67,13 @@ public:
 
     std::vector<Order> ListPendingApprovals() const;
 
+    // Orders currently eligible for Release() (status == Confirmed), for the
+    // "출고 처리" (release) screen to show before prompting for an order
+    // number -- mirrors ListPendingApprovals' contract (no settlement sweep;
+    // callers that need matured PRODUCING->CONFIRMED transitions reflected
+    // must settle first, same as ListPendingApprovals).
+    std::vector<Order> ListReleasable() const;
+
     OrderServiceResult<Order> Approve(const std::string& orderNumber, IClock& clock);
 
     OrderServiceResult<Order> Reject(const std::string& orderNumber);

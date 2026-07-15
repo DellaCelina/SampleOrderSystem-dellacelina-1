@@ -45,6 +45,10 @@ private:
     std::optional<int> ReadMenuChoice() const;
     void Dispatch(int choice);  // no-op + "invalid choice" message for unmapped ints
     int PromptInt(const std::string& promptText, int defaultValue) const;
+    // Blocks on Enter so a just-rendered read-only/result screen isn't wiped
+    // by the next loop iteration's screen-clearing PrintMenu() before the
+    // user can read it. See Dispatch()'s ChoiceNeedsPauseAfterDispatch.
+    void PressEnterToContinue() const;
 
     SampleController& sampleController_;
     OrderController& orderController_;

@@ -196,3 +196,28 @@ TEST_F(MonitoringServiceTest, GetSampleStockLevelsReflectsStockIncreaseFromSettl
     EXPECT_EQ(levels[0].currentStock, 10);
     EXPECT_EQ(levels[0].level, StockLevel::InStock);
 }
+
+TEST_F(MonitoringServiceTest, GetSampleStockLevelsUnclaimedStockExcludesQuantityAlreadyClaimedByConfirmedAndProducingOrders) {
+    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 100)));
+    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 20, OrderStatus::Confirmed});
+    m_orders->Add(Order{"ORD-0002", "SMP-001", "Acme", 15, OrderStatus::Producing});
+    m_orders->Add(Order{"ORD-0003", "SMP-001", "Acme", 999, OrderStatus::Reserved});   // not claimed yet
+    m_orders->Add(Order{"ORD-0004", "SMP-001", "Acme", 999, OrderStatus::Released});   // already shipped, not claimed
+    m_orders->Add(Order{"ORD-0005", "SMP-001", "Acme", 999, OrderStatus::Rejected});   // never claimed
+
+    std::vector<SampleStockInfo> levels = m_service->GetSampleStockLevels();
+
+    ASSERT_EQ(levels.size(), 1u);
+    EXPECT_EQ(levels[0].currentStock, 100);
+    EXPECT_EQ(levels[0].unclaimedStock, 65);  // 100 - (20 + 15)
+}
+
+TEST_F(MonitoringServiceTest, GetSampleStockLevelsUnclaimedStockIsFlooredAtZeroWhenOverclaimed) {
+    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 10)));
+    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 30, OrderStatus::Confirmed});
+
+    std::vector<SampleStockInfo> levels = m_service->GetSampleStockLevels();
+
+    ASSERT_EQ(levels.size(), 1u);
+    EXPECT_EQ(levels[0].unclaimedStock, 0);
+}

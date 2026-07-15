@@ -1,4 +1,4 @@
-// Wires the whole console app together: parses CLI flags, resolves data/
+﻿// Wires the whole console app together: parses CLI flags, resolves data/
 // schema paths relative to the executable's own directory (not the
 // process's cwd), constructs repositories -> services -> views ->
 // controllers, then either runs one CLI-flag mode directly or enters
@@ -18,6 +18,7 @@
 #include "Controllers/MonitoringController.h"
 #include "Controllers/OrderController.h"
 #include "Controllers/SampleController.h"
+#include "Core/Console.h"
 #include "Core/SystemClock.h"
 #include "Repositories/OrderRepository.h"
 #include "Repositories/ProductionQueueRepository.h"
@@ -41,18 +42,23 @@ std::filesystem::path ExecutableDirectory() {
     wchar_t buffer[MAX_PATH];
     const DWORD len = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
     if (len == 0 || len == MAX_PATH) {
-        throw std::runtime_error("Failed to resolve executable path");
+        throw std::runtime_error("실행 파일 경로를 확인하지 못했습니다");
     }
     return std::filesystem::path(buffer).parent_path();
 }
 
 void PrintUsage() {
-    std::cout << "SampleOrderSystem.exe [--dummy-data[=N]] [--data-monitor] [--help]\n";
+    std::cout << "사용법: SampleOrderSystem.exe [--dummy-data[=N]] [--data-monitor] [--help]\n"
+              << "  --dummy-data[=N]   더미 시료/주문 데이터를 N개씩 생성하고 종료합니다 (기본값 20)\n"
+              << "  --data-monitor     생산 대기열을 정산한 뒤 전체 데이터를 출력하고 종료합니다\n"
+              << "  --help, -h         이 도움말을 출력하고 종료합니다\n";
 }
 
 }  // namespace
 
 int main(int argc, char** argv) {
+    EnableConsoleAnsiAndUtf8();
+
     CliArgs args = ParseCliArgs(argc, argv);
     if (args.mode == CliMode::Help) {
         PrintUsage();
@@ -124,7 +130,7 @@ int main(int argc, char** argv) {
             }
         }
     } catch (const std::exception& ex) {
-        std::cerr << "Fatal: " << ex.what() << "\n";
+        std::cerr << "치명적 오류: " << ex.what() << "\n";
         return 1;
     }
 }

@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "../Models/Order.h"
@@ -14,5 +15,7 @@ public:
                 const std::vector<ProductionQueueEntry>& queueEntries);
 
 private:
+    void WriteHeader(const std::string& title) const;
+
     std::ostream& out_;
 };

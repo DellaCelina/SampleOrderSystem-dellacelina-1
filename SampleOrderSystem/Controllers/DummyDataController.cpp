@@ -1,4 +1,4 @@
-#include "DummyDataController.h"
+﻿#include "DummyDataController.h"
 
 DummyDataController::DummyDataController(DummyDataGenerator& generator, std::ostream& out)
     : generator_(generator), out_(out) {}
@@ -9,5 +9,5 @@ void DummyDataController::Run(int sampleCount, int orderCount) {
     options.orderCount = orderCount;
     generator_.GenerateAll(options);
 
-    out_ << "Generated " << sampleCount << " sample(s) and " << orderCount << " order(s).\n";
+    out_ << "시료 " << sampleCount << "개, 주문 " << orderCount << "개를 생성했습니다.\n";
 }

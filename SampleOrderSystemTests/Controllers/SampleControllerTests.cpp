@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "Controllers/SampleController.h"
 #include "Views/SampleView.h"
@@ -97,7 +97,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithValidInputCreatesSampleWithZeroSt
     EXPECT_EQ(found->averageProductionTimeMinutes, 10);
     EXPECT_DOUBLE_EQ(found->yield, 0.9);
     EXPECT_EQ(found->currentStock, 0);
-    EXPECT_NE(out.str().find("registered successfully"), std::string::npos) << out.str();
+    EXPECT_NE(out.str().find("등록되었습니다"), std::string::npos) << out.str();
 }
 
 TEST_F(SampleControllerTest, HandleRegisterWithDuplicateSampleIdLeavesOriginalRecordUnchangedAndShowsError) {
@@ -118,7 +118,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithDuplicateSampleIdLeavesOriginalRe
     EXPECT_DOUBLE_EQ(found->yield, 0.9);
     EXPECT_EQ(found->currentStock, 100);
     EXPECT_EQ(repository.FindAll().size(), 1u);
-    EXPECT_NE(out.str().find("Error"), std::string::npos) << out.str();
+    EXPECT_NE(out.str().find("오류"), std::string::npos) << out.str();
 }
 
 TEST_F(SampleControllerTest, HandleRegisterWithNonNumericAverageProductionTimeRejectsWithoutCreatingARecord) {
@@ -132,7 +132,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithNonNumericAverageProductionTimeRe
 
     EXPECT_EQ(repository.FindById("SMP-001"), std::nullopt);
     EXPECT_TRUE(repository.FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos) << out.str();
+    EXPECT_NE(out.str().find("오류"), std::string::npos) << out.str();
 }
 
 TEST_F(SampleControllerTest, HandleRegisterWithNonPositiveAverageProductionTimeRejectsForEachInvalidValue) {
@@ -149,7 +149,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithNonPositiveAverageProductionTimeR
         controller.HandleRegister();
 
         EXPECT_EQ(repository.FindById(id), std::nullopt) << "average production time value: " << value;
-        EXPECT_NE(out.str().find("Error"), std::string::npos) << "average production time value: " << value << " output: " << out.str();
+        EXPECT_NE(out.str().find("오류"), std::string::npos) << "average production time value: " << value << " output: " << out.str();
     }
 }
 
@@ -164,7 +164,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithNonNumericYieldRejectsWithoutCrea
 
     EXPECT_EQ(repository.FindById("SMP-001"), std::nullopt);
     EXPECT_TRUE(repository.FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos) << out.str();
+    EXPECT_NE(out.str().find("오류"), std::string::npos) << out.str();
 }
 
 TEST_F(SampleControllerTest, HandleRegisterWithYieldOutOfRangeRejectsForEachInvalidValue) {
@@ -181,7 +181,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithYieldOutOfRangeRejectsForEachInva
         controller.HandleRegister();
 
         EXPECT_EQ(repository.FindById(id), std::nullopt) << "yield value: " << value;
-        EXPECT_NE(out.str().find("Error"), std::string::npos) << "yield value: " << value << " output: " << out.str();
+        EXPECT_NE(out.str().find("오류"), std::string::npos) << "yield value: " << value << " output: " << out.str();
     }
 }
 
@@ -209,7 +209,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithBlankSampleIdRejectsWithoutCreati
     controller.HandleRegister();
 
     EXPECT_TRUE(repository.FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos) << out.str();
+    EXPECT_NE(out.str().find("오류"), std::string::npos) << out.str();
 }
 
 TEST_F(SampleControllerTest, HandleRegisterWithBlankNameRejectsWithoutCreatingARecord) {
@@ -223,7 +223,7 @@ TEST_F(SampleControllerTest, HandleRegisterWithBlankNameRejectsWithoutCreatingAR
 
     EXPECT_EQ(repository.FindById("SMP-001"), std::nullopt);
     EXPECT_TRUE(repository.FindAll().empty());
-    EXPECT_NE(out.str().find("Error"), std::string::npos) << out.str();
+    EXPECT_NE(out.str().find("오류"), std::string::npos) << out.str();
 }
 
 // ---- HandleListAll ----
