@@ -156,6 +156,11 @@
     <ClCompile Include="Models\Order.cpp" />
     <ClInclude Include="Models\ProductionQueueEntry.h" />
     <ClCompile Include="Models\ProductionQueueEntry.cpp" />
+    <ClInclude Include="Persistence\Schema.h" />
+    <ClInclude Include="Persistence\SchemaValidator.h" />
+    <ClCompile Include="Persistence\SchemaValidator.cpp" />
+    <ClInclude Include="Persistence\JsonFileStore.h" />
+    <ClCompile Include="Persistence\JsonFileStore.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

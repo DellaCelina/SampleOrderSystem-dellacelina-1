@@ -28,7 +28,7 @@ GoogleTest/GoogleMock.
 
 - [x] Phase 1: Test project scaffolding + Clock abstraction (deps: none)
 - [x] Phase 2: JSON value/parser/writer (deps: Phase 1)
-- [ ] Phase 3: Schema documents + persistence layer (deps: Phase 2)
+- [x] Phase 3: Schema documents + persistence layer (deps: Phase 2)
 - [x] Phase 4: Domain models + ISO-8601 timestamp conversion (deps: Phase 1, Phase 2)
 - [ ] Phase 5: Repositories + order-number sequence derivation (deps: Phase 3, Phase 4)
 - [ ] Phase 6: ProductionService — shortfall math, FIFO completion time, lazy settlement (deps: Phase 1, Phase 5)

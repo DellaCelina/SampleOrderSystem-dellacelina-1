@@ -1,0 +1,10 @@
+{
+  "table": "orders",
+  "fields": [
+    { "name": "orderNumber", "type": "string", "required": true, "pattern": "^ORD-\\d{4}$" },
+    { "name": "sampleId", "type": "string", "required": true },
+    { "name": "customerName", "type": "string", "required": true },
+    { "name": "quantity", "type": "integer", "required": true, "min": 1 },
+    { "name": "status", "type": "string", "required": true, "enum": ["Reserved", "Confirmed", "Producing", "Released", "Rejected"] }
+  ]
+}

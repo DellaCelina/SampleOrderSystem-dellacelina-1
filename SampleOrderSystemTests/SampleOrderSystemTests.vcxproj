@@ -153,6 +153,9 @@
     <ClInclude Include="..\SampleOrderSystem\Models\Sample.h" />
     <ClInclude Include="..\SampleOrderSystem\Models\Order.h" />
     <ClInclude Include="..\SampleOrderSystem\Models\ProductionQueueEntry.h" />
+    <ClInclude Include="..\SampleOrderSystem\Persistence\Schema.h" />
+    <ClInclude Include="..\SampleOrderSystem\Persistence\SchemaValidator.h" />
+    <ClInclude Include="..\SampleOrderSystem\Persistence\JsonFileStore.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestMain.cpp" />
@@ -172,6 +175,11 @@
     <ClCompile Include="Models\SampleTests.cpp" />
     <ClCompile Include="Models\OrderTests.cpp" />
     <ClCompile Include="Models\ProductionQueueEntryTests.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Persistence\SchemaValidator.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Persistence\JsonFileStore.cpp" />
+    <ClCompile Include="Persistence\SchemaTests.cpp" />
+    <ClCompile Include="Persistence\SchemaValidatorTests.cpp" />
+    <ClCompile Include="Persistence\JsonFileStoreTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
