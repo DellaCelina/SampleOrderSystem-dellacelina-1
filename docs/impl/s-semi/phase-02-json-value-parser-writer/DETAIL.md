@@ -379,7 +379,7 @@ and, in the `<ClCompile>` group:
 <ClCompile Include="Json\JsonWriterTests.cpp" />
 ```
 
-The `AdditionalIncludeDirectories` entry (`..\SampleOrderSystem;%(AdditionalIncludeDirectories)`) already added in phase-1 is sufficient for `#include "Json/JsonValue.h"` to resolve from the test project's own new `Json/*Tests.cpp` files — no additional include-path changes are needed.
+**Correction (found during implementation):** the `AdditionalIncludeDirectories` entry phase-1 added (`..\SampleOrderSystem;%(AdditionalIncludeDirectories)`) is *not* sufficient by itself once test files live in a `Json/` subdirectory of the test project — `SampleOrderSystemTests/Json/JsonValueTests.cpp` including `"Json/JsonValue.h"` needs the test project's *own root* on the include path too, not just `..\SampleOrderSystem`. Add `.` to the front of `AdditionalIncludeDirectories` in all four configs (`.;..\SampleOrderSystem;%(AdditionalIncludeDirectories)`), not just carry over phase-1's entry unchanged.
 
 ### Parallelism note for whoever schedules phase batches
 

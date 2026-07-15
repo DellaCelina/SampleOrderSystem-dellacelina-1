@@ -147,6 +147,12 @@
     <ClInclude Include="Core\IClock.h" />
     <ClInclude Include="Core\SystemClock.h" />
     <ClCompile Include="Core\SystemClock.cpp" />
+    <ClInclude Include="Json\JsonValue.h" />
+    <ClInclude Include="Json\JsonParser.h" />
+    <ClInclude Include="Json\JsonWriter.h" />
+    <ClCompile Include="Json\JsonValue.cpp" />
+    <ClCompile Include="Json\JsonParser.cpp" />
+    <ClCompile Include="Json\JsonWriter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
