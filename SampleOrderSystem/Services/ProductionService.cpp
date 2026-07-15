@@ -1,4 +1,4 @@
-#include "Services/ProductionService.h"
+#include "ProductionService.h"
 
 #include <algorithm>
 #include <cmath>
@@ -80,6 +80,10 @@ void ProductionService::SettleDueEntries(IClock& clock) {
             continue;
         }
 
+        // Ordering trade-off: stock credit, order-status flip, and queue removal are three
+        // separate file writes (each individually atomic, the sequence is not). A crash between
+        // them can double-credit stock on the next sweep (entry still queued -> reprocessed) but
+        // never lose it silently, which was judged the safer failure mode of the two.
         m_samples.IncreaseStock(entry.sampleId, entry.actualProducedQuantity);
 
         std::optional<Order> order = m_orders.FindByOrderNumber(entry.orderNumber);
