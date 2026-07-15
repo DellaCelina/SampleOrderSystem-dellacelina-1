@@ -4,8 +4,8 @@
 - [x] 4-2 Green: implementation passes tests
 - [x] 4-3 Refactor: cleaned up, tests still pass
 - [x] 4-4 Verify: behavior matches REQUIREMENT/ARCHITECTURE/plan
-- [ ] 4-5 pc-reviewer: reviewed, findings applied
-- [ ] 4-6 Commit: committed
+- [x] 4-5 pc-reviewer: reviewed, findings applied
+- [x] 4-6 Commit: committed
 
 ## Notes
 
