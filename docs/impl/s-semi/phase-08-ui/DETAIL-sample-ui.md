@@ -1,4 +1,8 @@
-# Phase 10: Sample UI (SampleView + SampleController)
+# Phase 8 (consolidated, formerly Phase 10) - Sample UI (SampleView + SampleController) — [ALREADY IMPLEMENTED]
+
+**Status: already implemented and committed** (commit `ecab900`, reviewed/fixed in `REVIEW-sample-ui.md`
+in this directory). Kept here only as a merged reference for Phase 8's overall scope — no
+remaining work for this sub-feature.
 
 **Depends on:** Phase 5 (repositories)
 **Touches:** `SampleOrderSystem/Views/SampleView.h`, `SampleOrderSystem/Views/SampleView.cpp`, `SampleOrderSystem/Controllers/SampleController.h`, `SampleOrderSystem/Controllers/SampleController.cpp`

@@ -32,10 +32,9 @@ GoogleTest/GoogleMock.
 - [x] Phase 4: Domain models + ISO-8601 timestamp conversion (deps: Phase 1, Phase 2)
 - [x] Phase 5: Repositories + order-number sequence derivation (deps: Phase 3, Phase 4)
 - [x] Phase 6: ProductionService — shortfall math, FIFO completion time, lazy settlement (deps: Phase 1, Phase 5)
-- [x] Phase 10: Sample UI — SampleView + SampleController (deps: Phase 5)
-- [ ] Phase 7 (consolidated): Remaining services — OrderService, MonitoringService, ProductionLineViewService, DummyDataGenerator (deps: Phase 5, Phase 6)
-- [ ] Phase 8 (consolidated): Remaining UI — Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI (deps: Phase 7)
-- [ ] Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags (deps: Phase 8, Phase 10)
+- [x] Phase 7 (consolidated): Remaining services — OrderService, MonitoringService, ProductionLineViewService, DummyDataGenerator (deps: Phase 5, Phase 6)
+- [ ] Phase 8 (consolidated): UI — Sample UI (already implemented, merged in from the old standalone Phase 10), Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI (deps: Phase 5, Phase 7)
+- [ ] Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags (deps: Phase 8)
 
 **Consolidation note (post Phase 6/10):** the remaining work was originally split into 7 finer
 phases (old 7/8/9/11/12/13/14) for maximal parallelism, but per explicit user direction the
@@ -53,10 +52,10 @@ Batches are maximal groups of not-yet-done phases whose deps are already committ
 2. **Batch B:** Phase 2, Phase 4 (both only need Phase 1; disjoint files — Json/ vs Models/+Core/Iso8601)
 3. **Batch C:** Phase 3 (needs Phase 2)
 4. **Batch D:** Phase 5 (needs Phase 3 + Phase 4)
-5. **Batch E:** Phase 6, Phase 10 (Phase 6 needs Phase 1+5; Phase 10 needs only Phase 5 — disjoint files: Services/ProductionService vs Views+Controllers/Sample*)
+5. **Batch E:** Phase 6, Phase 10 (Phase 6 needs Phase 1+5; Phase 10 needs only Phase 5 — disjoint files: Services/ProductionService vs Views+Controllers/Sample*). Phase 10 was later folded into Phase 8 as a bookkeeping merge (see below) since it's UI-shaped work, but it was implemented and committed here, in this batch, before that merge happened.
 6. **Batch F:** Phase 7 consolidated — OrderService + MonitoringService/ProductionLineViewService + DummyDataGenerator, implemented as one sequential phase (needs Phase 5+6; no longer split across parallel agents)
-7. **Batch G:** Phase 8 consolidated — Order UI + Monitoring/ProductionLine UI + DataMonitor/DummyData UI, one sequential phase (needs Phase 7)
-8. **Batch H:** Phase 9 consolidated — MainMenuController + main.cpp wiring (needs Phase 8, Phase 10 — final integration, no parallelism left)
+7. **Batch G:** Phase 8 consolidated — Sample UI (already done, merged in from old Phase 10) + Order UI + Monitoring/ProductionLine UI + DataMonitor/DummyData UI, one sequential phase for the three still-pending sub-features (needs Phase 5+7)
+8. **Batch H:** Phase 9 consolidated — MainMenuController + main.cpp wiring (needs Phase 8 — final integration, no parallelism left)
 
 All phases share `SampleOrderSystemTests.vcxproj` as a `touches` entry (each phase adds its new
 source files to it). This is a known, accepted overlap — set `overlappingFiles: true` for any
