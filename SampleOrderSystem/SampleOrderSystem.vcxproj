@@ -169,6 +169,14 @@
     <ClCompile Include="Repositories\ProductionQueueRepository.cpp" />
     <ClInclude Include="Services\ProductionService.h" />
     <ClCompile Include="Services\ProductionService.cpp" />
+    <ClInclude Include="Services\OrderService.h" />
+    <ClCompile Include="Services\OrderService.cpp" />
+    <ClInclude Include="Services\MonitoringService.h" />
+    <ClCompile Include="Services\MonitoringService.cpp" />
+    <ClInclude Include="Services\ProductionLineViewService.h" />
+    <ClCompile Include="Services\ProductionLineViewService.cpp" />
+    <ClInclude Include="Services\DummyDataGenerator.h" />
+    <ClCompile Include="Services\DummyDataGenerator.cpp" />
     <ClInclude Include="Views\SampleView.h" />
     <ClCompile Include="Views\SampleView.cpp" />
     <ClInclude Include="Controllers\SampleController.h" />

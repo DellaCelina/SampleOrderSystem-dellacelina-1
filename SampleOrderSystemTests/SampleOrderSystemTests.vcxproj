@@ -160,6 +160,10 @@
     <ClInclude Include="..\SampleOrderSystem\Repositories\OrderRepository.h" />
     <ClInclude Include="..\SampleOrderSystem\Repositories\ProductionQueueRepository.h" />
     <ClInclude Include="..\SampleOrderSystem\Services\ProductionService.h" />
+    <ClInclude Include="..\SampleOrderSystem\Services\OrderService.h" />
+    <ClInclude Include="..\SampleOrderSystem\Services\MonitoringService.h" />
+    <ClInclude Include="..\SampleOrderSystem\Services\ProductionLineViewService.h" />
+    <ClInclude Include="..\SampleOrderSystem\Services\DummyDataGenerator.h" />
     <ClInclude Include="..\SampleOrderSystem\Views\SampleView.h" />
     <ClInclude Include="..\SampleOrderSystem\Controllers\SampleController.h" />
   </ItemGroup>
@@ -187,6 +191,10 @@
     <ClCompile Include="..\SampleOrderSystem\Repositories\OrderRepository.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Repositories\ProductionQueueRepository.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Services\ProductionService.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Services\OrderService.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Services\MonitoringService.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Services\ProductionLineViewService.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Services\DummyDataGenerator.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Views\SampleView.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Controllers\SampleController.cpp" />
     <ClCompile Include="Persistence\SchemaTests.cpp" />
@@ -196,6 +204,10 @@
     <ClCompile Include="Repositories\OrderRepositoryTests.cpp" />
     <ClCompile Include="Repositories\ProductionQueueRepositoryTests.cpp" />
     <ClCompile Include="Services\ProductionServiceTests.cpp" />
+    <ClCompile Include="Services\OrderServiceTests.cpp" />
+    <ClCompile Include="Services\MonitoringServiceTests.cpp" />
+    <ClCompile Include="Services\ProductionLineViewServiceTests.cpp" />
+    <ClCompile Include="Services\DummyDataGeneratorTests.cpp" />
     <ClCompile Include="Views\SampleViewTests.cpp" />
     <ClCompile Include="Controllers\SampleControllerTests.cpp" />
   </ItemGroup>
