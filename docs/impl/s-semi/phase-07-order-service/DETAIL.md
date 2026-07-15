@@ -67,10 +67,15 @@ class ProductionService {
 public:
     static int ComputeShortfall(int orderQuantity, int unclaimedStock); // max(orderQuantity - unclaimedStock, ...) — only called when unclaimedStock < orderQuantity, so no clamping needed here
     static int ComputeActualQuantity(int shortfall, double yield);      // ceil(shortfall / yield)
-    void Enqueue(const std::string& orderNumber, const std::string& sampleId,
-                 int shortfallQuantity, int actualProducedQuantity, Core::IClock& clock);
-        // computes expectedCompletionAt from current queue tail (or clock.Now() if empty) + averageProductionTimeMinutes*actualProducedQuantity,
-        // persists the ProductionQueueEntry to data/production_queue.json
+    Models::ProductionQueueEntry Enqueue(const std::string& orderNumber, const std::string& sampleId,
+                 int shortfallQuantity, Core::IClock& clock);
+        // per phase-6's real contract: takes only the already-computed shortfallQuantity (NOT
+        // actualProducedQuantity — Enqueue looks up the sample and computes actualQty/duration
+        // itself internally via the pure functions above), computes expectedCompletionAt from the
+        // current queue tail (or clock.Now() if empty) + averageProductionTimeMinutes*actualProducedQuantity,
+        // persists the ProductionQueueEntry to data/production_queue.json, and returns the created
+        // entry by value. OrderService does NOT call ComputeActualQuantity itself before calling
+        // Enqueue — that computation lives inside Enqueue, per phase-6's DETAIL.md.
     void SettleDueEntries(Core::IClock& clock);
         // sweeps due entries, increments sample stock, flips matching order Producing->Confirmed, persists
 };
@@ -184,7 +189,7 @@ Note `ListPendingApprovals` and `SubmitOrder` deliberately take **no** `IClock&`
 3. `order.status != Reserved` → `Failure(InvalidStatusForApproval, ...)`, no mutation.
 4. `unclaimed = ComputeUnclaimedStock(order.sampleId)` (reads sample/orders *after* settlement, so reflects post-sweep reality).
 5. If `unclaimed >= order.quantity`: `orderRepository_.UpdateStatus(orderNumber, Confirmed)`; no stock change; no queue entry; return `Success` with the updated order.
-6. Else: `shortfall = ProductionService::ComputeShortfall(order.quantity, unclaimed)` (equivalently `order.quantity - unclaimed`, since `unclaimed < order.quantity` here so no clamping needed at this call site — the clamp already happened inside `ComputeUnclaimedStock`); `actualQty = ProductionService::ComputeActualQuantity(shortfall, sample.yield)`; `productionService_.Enqueue(orderNumber, order.sampleId, shortfall, actualQty, clock)` (this computes `expectedCompletionAt` off the *current* queue tail — correct only because step 1 already swept anything due, so no stale/expired tail entry is used as an anchor); `orderRepository_.UpdateStatus(orderNumber, Producing)`; return `Success`.
+6. Else: `shortfall = ProductionService::ComputeShortfall(order.quantity, unclaimed)` (equivalently `order.quantity - unclaimed`, since `unclaimed < order.quantity` here so no clamping needed at this call site — the clamp already happened inside `ComputeUnclaimedStock`); `productionService_.Enqueue(orderNumber, order.sampleId, shortfall, clock)` — pass only the shortfall; `Enqueue` computes `actualProducedQuantity` internally via `ComputeActualQuantity` and looks up the sample's yield itself, so `OrderService` must **not** call `ComputeActualQuantity` before this call (this computes `expectedCompletionAt` off the *current* queue tail — correct only because step 1 already swept anything due, so no stale/expired tail entry is used as an anchor); `orderRepository_.UpdateStatus(orderNumber, Producing)`; return `Success`.
 7. Sample stock is **not** touched during `Approve` in either branch — stock only changes via `SettleDueEntries` (production completing) and via `Release` (shipment decrementing it).
 
 **`Reject(orderNumber)`**

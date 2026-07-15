@@ -186,6 +186,12 @@ public:
     // Returns all orders with status == Reserved.
     std::vector<Order> FindByStatus(OrderStatus status) const;
 
+    // Returns all orders whose sampleId matches, in any status. Required by phase-7's
+    // OrderService::ComputeUnclaimedStock (sums quantity across a sample's Producing/Confirmed
+    // orders) -- exposed here as a repository-level filter rather than making phase-7 filter
+    // FindAll() client-side, so the "query by sample" access pattern has one implementation.
+    std::vector<Order> FindBySampleId(const std::string& sampleId) const;
+
     // Updates the status field of an existing order in place and persists. Throws
     // std::invalid_argument if orderNumber not found. Does NOT validate that the transition is
     // legal (Reserved->Confirmed etc.) -- that state-machine validation belongs to OrderService in
@@ -221,6 +227,9 @@ Notes/edge cases to cover in tests (`OrderRepositoryTests.cpp`):
   call, not on successful `Add`.
 - `Add` with a duplicate `orderNumber` throws `std::invalid_argument`; table unchanged after
   (verify via `FindAll().size()` before/after the throwing call).
+- `FindBySampleId` returns only orders matching the given `sampleId`, across all statuses
+  (including `Reserved`/`Rejected`, not just `Producing`/`Confirmed`); returns an empty vector for
+  a `sampleId` with no orders, without throwing.
 - `FindByOrderNumber` unknown → `std::nullopt`.
 - `FindByStatus(Reserved)` returns only Reserved orders when the table has a mix of statuses
   (seed at least one of each of the 5 statuses in one test and assert exact membership per status
