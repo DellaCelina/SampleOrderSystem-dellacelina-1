@@ -143,7 +143,11 @@
     </Manifest>
   </ItemDefinitionGroup>
 
-  <ItemGroup></ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\IClock.h" />
+    <ClInclude Include="Core\SystemClock.h" />
+    <ClCompile Include="Core\SystemClock.cpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
