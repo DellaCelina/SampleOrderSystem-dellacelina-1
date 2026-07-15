@@ -1,23 +1,11 @@
 export const meta = {
   name: 'pc-phase-batch-implement',
-  description: 'project-cycle Stage 4 sub-steps 4-1..4-4 for a batch of mutually-independent phases: each phase moves through Red -> Green -> Refactor -> Verify as its own pipeline chain, so no phase waits on another. Sub-steps 4-5 (human review) and 4-6 (commit) happen outside this workflow, since they need a human in the loop.',
+  description: 'project-cycle Stage 4 sub-steps 4-1..4-3 for a batch of mutually-independent phases: each phase moves through Red -> Green -> Refactor as its own pipeline chain, so no phase waits on another. Verify is folded into the post-commit pc-reviewer gate (sub-step 4-5), which happens outside this workflow along with commit (4-4/4-6), since they need to run after each phase's own commit.',
   phases: [
-    { title: 'Red', detail: 'write failing/uncompiled unit tests per phase' },
+    { title: 'Red', detail: 'write a few focused failing/uncompiled unit tests per phase' },
     { title: 'Green', detail: 'minimal implementation to pass those tests' },
     { title: 'Refactor', detail: 'clean up, confirm tests still pass' },
-    { title: 'Verify', detail: 'check behavior against requirement/architecture/phase spec, not just green tests' },
   ],
-}
-
-const VERIFY_SCHEMA = {
-  type: 'object',
-  properties: {
-    passed: { type: 'boolean' },
-    summary: { type: 'string' },
-    filesChanged: { type: 'array', items: { type: 'string' } },
-    concerns: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['passed', 'summary', 'filesChanged', 'concerns'],
 }
 
 // args.phases: array of { id, name, detail, touches, deps } - caller (the skill) is responsible for
@@ -46,7 +34,12 @@ ${phase.detail}
 """
 Touches: ${phase.touches.join(', ')}
 
-Find and follow the repo's existing test setup/conventions before adding new ones. Return a short summary of what tests were added, where, and their current (expected-red) state.`,
+Keep the test list SHORT: cover only the handful of behaviors that matter most for this phase (the
+core happy path plus the one or two edge cases most likely to break) - do not try to enumerate
+every combination. This is a speed tradeoff the team has explicitly asked for; a lean, well-chosen
+test set beats an exhaustive one that slows the cycle down. Find and follow the repo's existing
+test setup/conventions before adding new ones. Return a short summary of what tests were added,
+where, and their current (expected-red) state.`,
       { phase: 'Red', agentType: 'pc-tester', label: `red:${phase.id}`, isolation }
     ),
 
@@ -80,37 +73,9 @@ What was just implemented:
 ${greenSummary}
 """
 
-Return a summary of what changed (or confirmation nothing needed to) and the post-refactor test result.`,
+Return a summary of what changed (or confirmation nothing needed to), the post-refactor test result, and a list of every file actually changed for this phase (so the caller can commit and hand this off to review/verify).`,
       { phase: 'Refactor', agentType: 'pc-refactorer', label: `refactor:${phase.id}`, isolation }
-    ),
-
-  // 4-4 Verify
-  (refactorSummary, phase) =>
-    agent(
-      `Verify that this phase actually satisfies its intent - not just "tests are green," but that the behavior matches the requirement, architecture, and this phase's own spec. If something is off, say so concretely (don't just say "looks fine").
-
-Phase: ${phase.name} (id: ${phase.id})
-Phase detail/spec:
-"""
-${phase.detail}
-"""
-Requirement doc:
-"""
-${A.requirementMarkdown}
-"""
-Architecture doc:
-"""
-${A.architectureMarkdown}
-"""
-Work done so far (post-refactor):
-"""
-${refactorSummary}
-"""
-Repo: ${A.repoPath}
-
-List every file actually changed for this phase.`,
-      { phase: 'Verify', agentType: 'pc-verifier', label: `verify:${phase.id}`, schema: VERIFY_SCHEMA, isolation }
-    ).then((v) => ({ ...v, phaseId: phase.id, phaseName: phase.name }))
+    ).then((summary) => ({ summary, phaseId: phase.id, phaseName: phase.name }))
 )
 
 return { results: results.filter(Boolean) }

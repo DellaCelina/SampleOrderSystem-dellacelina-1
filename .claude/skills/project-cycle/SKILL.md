@@ -19,11 +19,11 @@ Every `agent()` call in these workflows uses a purpose-built subagent type from 
 | `pc-architect` | 설계자 — designs against the real codebase | read-only | Stage 2 draft/revise |
 | `pc-planner` | 계획자 — splits architecture into dependency-aware phases | read-only | Stage 3 split/revise/expand |
 | `pc-critic` | 비평가 — adversarial pre-review of a draft doc, defaults to skeptical | read-only | Stage 1/2/3 critique steps (inside the drafting workflow, before commit) |
-| `pc-reviewer` | 검토자 — post-commit stage gate, always returns ≥1 actionable finding | read-only + Bash | After every stage's commit (1, 2, 3, each Stage 4 phase, Stage 5) |
-| `pc-tester` | 테스터 — writes Red-state tests; reviews test coverage in final review | full | Stage 4 (4-1), Stage 5 test-coverage lens |
+| `pc-reviewer` | 검토자 — post-commit stage gate, always returns ≥1 actionable finding; for Stage 4 also covers verify (no separate per-phase verify step anymore) | read-only + Bash | After every stage's commit (1, 2, 3, each Stage 4 phase, Stage 5) |
+| `pc-tester` | 테스터 — writes a few focused Red-state tests (core path + highest-value edge cases, not exhaustive); reviews test coverage in final review | full | Stage 4 (4-1), Stage 5 test-coverage lens |
 | `pc-implementer` | 구현자 — minimal Green implementation, stays in phase scope | full | Stage 4 (4-2) |
 | `pc-refactorer` | 리팩터러 — cleans up without changing behavior; reviews code quality in final review | full | Stage 4 (4-3), Stage 5 code-quality lens |
-| `pc-verifier` | 검증자 — checks behavior against spec, can't edit so its verdict stays honest | read-only + Bash | Stage 4 (4-4), Stage 5 requirement-coverage lens |
+| `pc-verifier` | 검증자 — checks behavior against spec, can't edit so its verdict stays honest | read-only + Bash | Stage 5 requirement-coverage lens only (per-phase verify is now folded into `pc-reviewer`) |
 
 Reuse is deliberate, not laziness: `pc-critic` reviewing three different doc types, `pc-reviewer` gating every stage the same way, or `pc-tester`/`pc-refactorer`/`pc-verifier` doing double duty in final review, means the same skeptical/quality/verification lens gets applied consistently instead of each stage inventing its own ad hoc review criteria. If a future stage needs a genuinely different mindset, add a new agent file rather than stretching an existing persona to cover it.
 
@@ -83,20 +83,18 @@ After you write and commit a stage's artifact, run this fixed sequence before mo
 
 Group the phases from `IMPLEMENT.md` into **batches**: a batch is a maximal set of not-yet-done phases whose `deps` are all already committed, and that don't declare overlapping `touches`. Process batches in order; within a batch, everything runs together.
 
-For each batch, call `Workflow({ scriptPath: ".claude/workflows/phase-batch-implement.js", args: { repoPath: "<...>", requirementMarkdown: "<...>", architectureMarkdown: "<...>", phases: [<the batch's phase objects — id, name, detail, touches>], overlappingFiles: false } })`. This runs sub-steps 4-1 through 4-4 for every phase in the batch as independent pipeline chains (no phase waits on another one's chain), each via its own subagent:
+For each batch, call `Workflow({ scriptPath: ".claude/workflows/phase-batch-implement.js", args: { repoPath: "<...>", requirementMarkdown: "<...>", architectureMarkdown: "<...>", phases: [<the batch's phase objects — id, name, detail, touches>], overlappingFiles: false } })`. This runs sub-steps 4-1 through 4-3 for every phase in the batch as independent pipeline chains (no phase waits on another one's chain), each via its own subagent:
 
-- **4-1 Red** — writes unit test(s) for the phase; expected to fail/not compile yet.
+- **4-1 Red** — writes a few focused unit test(s) for the phase (core path + the highest-value edge cases, not an exhaustive matrix); expected to fail/not compile yet.
 - **4-2 Green** — minimal implementation to make those tests pass, with an actual test run confirming it.
 - **4-3 Refactor** — cleans up if warranted, reruns tests, reports if nothing needed changing.
-- **4-4 Verify** — checks the phase against the requirement/architecture/phase spec, not just green tests; returns `{ passed, summary, filesChanged, concerns }` per phase.
 
-If any phase's file scope might actually overlap despite looking disjoint on paper, set `overlappingFiles: true` so the workflow isolates each phase's agents in their own git worktree — otherwise leave it off, since worktree isolation is expensive and phases are supposed to be scoped to disjoint files by Stage 3 design.
+There is no separate Verify sub-step anymore — the `pc-reviewer` gate (4-5 below) covers that job too, to keep the per-phase cycle fast. If any phase's file scope might actually overlap despite looking disjoint on paper, set `overlappingFiles: true` so the workflow isolates each phase's agents in their own git worktree — otherwise leave it off, since worktree isolation is expensive and phases are supposed to be scoped to disjoint files by Stage 3 design.
 
 Once the workflow returns, handle each phase in the batch one at a time:
 
-- **4-4 fallback.** If a phase's `passed` came back `false`, go back and re-run just that phase (you can call the workflow again with only that one phase in `phases`) after addressing `concerns`, or drop back to Stage 3 if the concern is really a planning gap.
-- **4-5 Commit.** Commit this phase's changes (this is what step 1 of the post-commit review gate calls for) and mark it done in `IMPLEMENT.md`'s phase checklist and the phase's `STATUS.md` (template in `references/templates.md` — track this per phase so you can resume mid-batch after a compaction or new session).
-- **4-6 Review gate.** Run the **post-commit review gate**'s steps 2–5 (`pc-reviewer` against this phase's diff, apply, commit the fix, then move on) before starting the next phase in the batch. Once every phase in the batch is through its own gate, move to the next batch.
+- **4-4 Commit.** Commit this phase's changes (this is what step 1 of the post-commit review gate calls for) and mark it done in `IMPLEMENT.md`'s phase checklist and the phase's `STATUS.md` (template in `references/templates.md` — track this per phase so you can resume mid-batch after a compaction or new session).
+- **4-5 Review gate (covers verify too).** Run the **post-commit review gate**'s steps 2-5 (`pc-reviewer` against this phase's diff, checking spec conformance as well as code quality, apply, commit the fix, then move on) before starting the next phase in the batch. If `pc-reviewer` finds the phase doesn't actually satisfy its spec, treat that like the old 4-4 failure path: re-run just that phase (call the workflow again with only that one phase in `phases`) after addressing the finding, or drop back to Stage 3 if the concern is really a planning gap. Once every phase in the batch is through its own gate, move to the next batch.
 
 ## Stage 5 — Final Review
 
