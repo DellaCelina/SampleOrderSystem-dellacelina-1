@@ -18,9 +18,59 @@ console project skeleton (`SampleOrderSystem/SampleOrderSystem.vcxproj`).
 This is a Visual Studio C++ project (`SampleOrderSystem.slnx`), not CMake — no Makefile/CMakeLists.
 - Language standard: C++20 (`stdcpp20`), Unicode character set, console subsystem.
 - Configurations: Debug/Release x Win32/x64. Platform toolset `v145`.
-- Build from Visual Studio, or via MSBuild: `msbuild SampleOrderSystem.slnx /p:Configuration=Debug /p:Platform=x64`.
-- No test project or test framework is wired up yet; add one when implementation starts (see
-  Implementation guide below re: dummy data generator for test data).
+- Two projects: `SampleOrderSystem/SampleOrderSystem.vcxproj` (the console app) and
+  `SampleOrderSystemTests/SampleOrderSystemTests.vcxproj` (GoogleTest/GoogleMock, via the NuGet
+  `gmock` package — compiles the app's non-UI sources a second time via relative-path
+  `<ClCompile>`/`<ClInclude>` items, no shared library project). **Building only the tests project
+  does not prove the app project still compiles** — a wrong `#include` style can compile by
+  accident in the tests project (it has an extra `AdditionalIncludeDirectories` entry) while
+  breaking the real app outright, so build both when in doubt (see Repo-specific conventions below).
+
+**From this repo's git-bash shell** (`MSYS2_ARG_CONV_EXCL` prevents `/p:`/`/t:` flags from being
+mangled to Windows paths):
+```bash
+export MSYS2_ARG_CONV_EXCL="*"
+"/c/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" \
+  SampleOrderSystemTests/SampleOrderSystemTests.vcxproj \
+  /p:Configuration=Debug /p:Platform=x64 /m:1 /v:minimal
+# add /t:Rebuild for a from-scratch build; swap the project path to build the app instead:
+#   SampleOrderSystem/SampleOrderSystem.vcxproj
+```
+Run the tests directly afterward (don't just trust a subagent's summary of the run):
+```bash
+./SampleOrderSystemTests/x64/Debug/SampleOrderSystemTests.exe
+# one suite/test only, e.g. while iterating on a single phase:
+./SampleOrderSystemTests/x64/Debug/SampleOrderSystemTests.exe --gtest_filter=OrderServiceTest.*
+./SampleOrderSystemTests/x64/Debug/SampleOrderSystemTests.exe --gtest_filter=OrderServiceTest.RejectOfAReservedOrderSucceedsAndRemovesItFromPendingApprovals
+```
+Look for `[  PASSED  ] N tests.` at the end — a `[  FAILED  ]` block lists the specific failing
+test names above it.
+The app project (`SampleOrderSystem.vcxproj`) is expected to fail to **link** with
+`LNK2019: unresolved external symbol main` until the main-wiring phase adds `main.cpp` — that's a
+known, pre-existing gap, not a regression; a *compile* error there (anything before the link step)
+is real and must be fixed.
+
+**Don't build in parallel with a background implementation workflow still writing files** — two
+concurrent MSBuild invocations against the same project can collide on the shared `.pdb`
+(`C1041: cannot open program database ... use /FS`), and a build kicked off mid-write will also hit
+missing-source-file errors for files the agent hasn't created yet. Wait for the workflow's
+completion notification first, then build.
+
+## Repo-specific conventions
+
+- **Global namespace everywhere** — no `SampleOrderSystem::` (or any) wrapper on any class/function.
+- **Include style**: a `.cpp` includes its own header by bare filename only (e.g.
+  `Services/OrderService.cpp` → `#include "OrderService.h"`), and any cross-folder include is
+  relative with `../` (e.g. `#include "../Repositories/OrderRepository.h"`,
+  `#include "../Core/IClock.h"`). Bare project-root-style includes (`"Services/X.h"`, `"Core/Y.h"`)
+  from inside a subfolder only compile by accident in the tests project (see Build above) and break
+  the real app project — this has been a real, repeated bug source.
+- `OrderStatus` serializes to JSON as **UPPER-CASE** strings (`RESERVED`/`CONFIRMED`/`PRODUCING`/
+  `RELEASED`/`REJECTED`) via `OrderStatusToString`/`OrderStatusFromString` — never hardcode a
+  different casing in code, tests, or schema files (a real critical bug here broke schema
+  validation for every real order).
+- Test framework is **GoogleTest/GoogleMock** (`TEST`/`TEST_F`, `EXPECT_*`/`ASSERT_*`,
+  `MOCK_METHOD`), not Catch2.
 
 ## Domain model (from the spec)
 
