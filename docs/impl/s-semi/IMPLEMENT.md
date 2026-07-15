@@ -34,7 +34,7 @@ GoogleTest/GoogleMock.
 - [x] Phase 6: ProductionService — shortfall math, FIFO completion time, lazy settlement (deps: Phase 1, Phase 5)
 - [x] Phase 7 (consolidated): Remaining services — OrderService, MonitoringService, ProductionLineViewService, DummyDataGenerator (deps: Phase 5, Phase 6)
 - [x] Phase 8 (consolidated): UI — Sample UI (already implemented, merged in from the old standalone Phase 10), Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI (deps: Phase 5, Phase 7)
-- [ ] Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags (deps: Phase 8)
+- [x] Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags (deps: Phase 8)
 
 **Consolidation note (post Phase 6/10):** the remaining work was originally split into 7 finer
 phases (old 7/8/9/11/12/13/14) for maximal parallelism, but per explicit user direction the
