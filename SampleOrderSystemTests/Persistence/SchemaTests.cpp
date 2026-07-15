@@ -58,11 +58,11 @@ JsonValue MakeOrderSchemaDoc() {
     quantity.Set("min", 1);
     JsonValue status = MakeField("status", "string");
     JsonValue enumValues = JsonValue::MakeArray();
-    enumValues.Push(JsonValue("Reserved"));
-    enumValues.Push(JsonValue("Confirmed"));
-    enumValues.Push(JsonValue("Producing"));
-    enumValues.Push(JsonValue("Released"));
-    enumValues.Push(JsonValue("Rejected"));
+    enumValues.Push(JsonValue("RESERVED"));
+    enumValues.Push(JsonValue("CONFIRMED"));
+    enumValues.Push(JsonValue("PRODUCING"));
+    enumValues.Push(JsonValue("RELEASED"));
+    enumValues.Push(JsonValue("REJECTED"));
     status.Set("enum", enumValues);
     return MakeSchemaDoc("orders", {orderNumber, sampleId, customerName, quantity, status});
 }
@@ -123,8 +123,8 @@ TEST(SchemaTest, ParsesTheOrderSchemaDocumentAndSpotChecksPatternAndEnum) {
     EXPECT_EQ(statusField.name, "status");
     ASSERT_TRUE(statusField.enumValues.has_value());
     ASSERT_EQ(statusField.enumValues->size(), 5u);
-    EXPECT_EQ((*statusField.enumValues)[0], "Reserved");
-    EXPECT_EQ((*statusField.enumValues)[4], "Rejected");
+    EXPECT_EQ((*statusField.enumValues)[0], "RESERVED");
+    EXPECT_EQ((*statusField.enumValues)[4], "REJECTED");
 }
 
 TEST(SchemaTest, ParsesTheProductionQueueSchemaDocumentAndSpotChecksIso8601Format) {

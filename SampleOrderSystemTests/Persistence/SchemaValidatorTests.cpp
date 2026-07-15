@@ -3,7 +3,12 @@
 #include "Persistence/Schema.h"
 #include "Persistence/SchemaValidator.h"
 #include "Json/JsonValue.h"
+#include "Models/Sample.h"
+#include "Models/Order.h"
+#include "Models/ProductionQueueEntry.h"
 
+#include <chrono>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -43,7 +48,7 @@ Schema MakeOrderLikeSchema() {
     FieldSchema quantity = MakeIntegerField("quantity", 1.0, std::nullopt);
 
     FieldSchema status = MakeStringField("status");
-    status.enumValues = std::vector<std::string>{"Reserved", "Confirmed", "Producing", "Released", "Rejected"};
+    status.enumValues = std::vector<std::string>{"RESERVED", "CONFIRMED", "PRODUCING", "RELEASED", "REJECTED"};
 
     schema.fields = {orderNumber, sampleId, quantity, status};
     return schema;
@@ -91,7 +96,7 @@ JsonValue MakeValidOrderRecord() {
     record.Set("orderNumber", "ORD-0001");
     record.Set("sampleId", "SMP-001");
     record.Set("quantity", 5);
-    record.Set("status", "Reserved");
+    record.Set("status", "RESERVED");
     return record;
 }
 
@@ -355,7 +360,7 @@ TEST(SchemaValidatorTest, PatternFieldWithTooManyDigitsFails) {
 
 TEST(SchemaValidatorTest, EnumFieldWithAnAllowedValuePasses) {
     JsonValue record = MakeValidOrderRecord();
-    record.Set("status", "Confirmed");
+    record.Set("status", "CONFIRMED");
 
     JsonValue data = JsonValue::MakeArray();
     data.Push(record);
@@ -376,6 +381,95 @@ TEST(SchemaValidatorTest, EnumFieldWithADisallowedValueFails) {
 
     ASSERT_TRUE(error.has_value());
     EXPECT_EQ(*error->fieldName, "status");
+}
+
+TEST(SchemaValidatorTest, Iso8601FormatCurrentlyAcceptsCalendarImpossibleDayOfMonthByDesign) {
+    // Documents a deliberate limitation: the ISO-8601 format check only
+    // validates structural shape + coarse range sanity (month 01-12, day
+    // 01-31), not full calendar correctness (leap years, day-of-month
+    // exactness per month). "2026-02-30" (February has no 30th) currently
+    // passes. If this is ever tightened, this test should be updated
+    // deliberately rather than the behavior silently changing.
+    FieldSchema field;
+    field.name = "enqueuedAt";
+    field.type = FieldType::String;
+    field.required = true;
+    field.isIso8601Format = true;
+
+    Schema schema;
+    schema.tableName = "production_queue";
+    schema.fields = {field};
+
+    JsonValue record = JsonValue::MakeObject();
+    record.Set("enqueuedAt", "2026-02-30T00:00:00Z");
+
+    JsonValue data = JsonValue::MakeArray();
+    data.Push(record);
+
+    EXPECT_EQ(Validate(data, schema), std::nullopt);
+}
+
+namespace {
+
+// Resolves the checked-in schema/*.schema.json path relative to this test
+// file's own location (stable regardless of the test binary's working
+// directory, which is not yet decided -- see phase-14's open item), rather
+// than a hardcoded relative path that could break depending on how the test
+// executable is launched.
+std::string RealSchemaPath(const std::string& fileName) {
+    std::filesystem::path here = std::filesystem::path(__FILE__).parent_path();
+    return (here / ".." / ".." / "schema" / fileName).string();
+}
+
+}  // namespace
+
+TEST(SchemaValidatorTest, RealOrderSchemaFileAcceptsARealOrderToJsonOutput) {
+    Schema schema = LoadSchemaFromFile(RealSchemaPath("order.schema.json"));
+
+    Order order;
+    order.orderNumber = "ORD-0001";
+    order.sampleId = "SMP-001";
+    order.customerName = "Acme Corp";
+    order.quantity = 10;
+    order.status = OrderStatus::Reserved;
+
+    JsonValue data = JsonValue::MakeArray();
+    data.Push(order.ToJson());
+
+    EXPECT_EQ(Validate(data, schema), std::nullopt);
+}
+
+TEST(SchemaValidatorTest, RealSampleSchemaFileAcceptsARealSampleToJsonOutput) {
+    Schema schema = LoadSchemaFromFile(RealSchemaPath("sample.schema.json"));
+
+    Sample sample;
+    sample.sampleId = "SMP-001";
+    sample.name = "Widget";
+    sample.averageProductionTimeMinutes = 30;
+    sample.yield = 0.9;
+    sample.currentStock = 100;
+
+    JsonValue data = JsonValue::MakeArray();
+    data.Push(sample.ToJson());
+
+    EXPECT_EQ(Validate(data, schema), std::nullopt);
+}
+
+TEST(SchemaValidatorTest, RealProductionQueueSchemaFileAcceptsARealProductionQueueEntryToJsonOutput) {
+    Schema schema = LoadSchemaFromFile(RealSchemaPath("production_queue.schema.json"));
+
+    ProductionQueueEntry entry;
+    entry.orderNumber = "ORD-0001";
+    entry.sampleId = "SMP-001";
+    entry.shortfallQuantity = 10;
+    entry.actualProducedQuantity = 12;
+    entry.enqueuedAt = std::chrono::system_clock::time_point{std::chrono::seconds{1704067200}};
+    entry.expectedCompletionAt = std::chrono::system_clock::time_point{std::chrono::seconds{1704070800}};
+
+    JsonValue data = JsonValue::MakeArray();
+    data.Push(entry.ToJson());
+
+    EXPECT_EQ(Validate(data, schema), std::nullopt);
 }
 
 TEST(SchemaValidatorTest, Iso8601FormatFieldWithAWellFormedTimestampPasses) {
