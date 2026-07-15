@@ -50,9 +50,10 @@ After you write and commit a stage's artifact, run this fixed sequence before mo
 
 1. **Commit** the artifact yourself (`git add` the specific file(s), commit with a message describing the stage). This is the checkpoint — not a request for permission.
 2. **Review.** Call the `Agent` tool with `subagent_type: "pc-reviewer"`, pointing it at what was just committed (the stage doc, or for Stage 4 the phase's diff, or for Stage 5 the whole feature) plus the docs that preceded it. It always returns at least one concrete finding.
-3. **Apply.** Fix what it found: small/local fixes, patch the file directly; if a finding reveals the stage's whole approach needs rework, loop back into that stage's drafting workflow with the finding folded into the input, then re-run this sequence from step 1.
-4. **Commit the fix** as a separate commit (e.g. "Address pc-reviewer feedback on <stage>").
-5. **Advance automatically** to the next stage — do not stop and wait for the user. Only pause if you hit a genuine blocker you can't resolve from the docs/code/pc-reviewer's finding (see the skill description's escape hatch).
+3. **Save the review.** Write `pc-reviewer`'s full findings to `REVIEW.md` in the relevant phase/stage directory — for Stages 1-2 that's the repo root doc's sibling (there is no per-stage subdirectory, so save it as `docs/REQUIREMENT.REVIEW.md` / `docs/ARCHITECTURE.REVIEW.md`), for Stage 3 and each Stage 4 phase it's that phase's own directory (`docs/impl/<feature-slug>/REVIEW.md` for the plan as a whole, `docs/impl/<feature-slug>/phase-NN-<slug>/REVIEW.md` per phase), for Stage 5 it's `docs/impl/<feature-slug>/FINAL-REVIEW.md`. Include: the findings ranked as returned, and for each one whether/how it was applied (fixed directly, folded into a re-draft, or — rare — recorded as an accepted tradeoff with reasoning). This makes the review durable and readable later without re-running the agent.
+4. **Apply.** Fix what it found: small/local fixes, patch the file directly; if a finding reveals the stage's whole approach needs rework, loop back into that stage's drafting workflow with the finding folded into the input, then re-run this sequence from step 1.
+5. **Commit the fix** (including `REVIEW.md`) as a separate commit (e.g. "Address pc-reviewer feedback on <stage>").
+6. **Advance automatically** to the next stage — do not stop and wait for the user. Only pause if you hit a genuine blocker you can't resolve from the docs/code/pc-reviewer's finding (see the skill description's escape hatch).
 
 ## Stage 1 — Requirement
 
