@@ -1,6 +1,6 @@
 export const meta = {
   name: 'pc-phase-batch-implement',
-  description: 'project-cycle Stage 4 sub-steps 4-1..4-3 for a batch of mutually-independent phases: each phase moves through Red -> Green -> Refactor as its own pipeline chain, so no phase waits on another. Verify is folded into the post-commit pc-reviewer gate (sub-step 4-5), which happens outside this workflow along with commit (4-4/4-6), since they need to run after each phase's own commit.',
+  description: "project-cycle Stage 4 sub-steps 4-1..4-3 for a batch of mutually-independent phases: each phase moves through Red -> Green -> Refactor as its own pipeline chain, so no phase waits on another. Verify is folded into the post-commit pc-reviewer gate (sub-step 4-5), which happens outside this workflow along with commit (4-4/4-6), since they need to run after each phase's own commit.",
   phases: [
     { title: 'Red', detail: 'write a few focused failing/uncompiled unit tests per phase' },
     { title: 'Green', detail: 'minimal implementation to pass those tests' },
