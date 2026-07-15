@@ -84,6 +84,10 @@ TEST(ProductionQueueEntryTest, ProductionQueueEntryFromJsonThrowsWhenANonTimesta
     EXPECT_THROW(ProductionQueueEntry::FromJson(json), std::invalid_argument);
 }
 
+TEST(ProductionQueueEntryTest, ProductionQueueEntryFromJsonThrowsWhenTopLevelValueIsNotAnObject) {
+    EXPECT_THROW(ProductionQueueEntry::FromJson(JsonValue::MakeArray()), std::invalid_argument);
+}
+
 TEST(ProductionQueueEntryTest, TwoEntriesSharingTheSameUnderlyingTimePointSerializeToIdenticalIso8601Strings) {
     // Simulates ProductionService's later FIFO chain: entry A's completion
     // time seeds entry B's enqueue time. This phase only guarantees they

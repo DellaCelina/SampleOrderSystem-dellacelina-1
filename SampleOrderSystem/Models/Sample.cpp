@@ -24,6 +24,10 @@ JsonValue Sample::ToJson() const {
 }
 
 Sample Sample::FromJson(const JsonValue& json) {
+    if (!json.IsObject()) {
+        throw std::invalid_argument("Sample::FromJson: expected a JSON object");
+    }
+
     Sample sample;
 
     const JsonValue& sampleId = RequireField(json, "sampleId");

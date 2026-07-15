@@ -94,6 +94,10 @@ TEST(SampleTest, SampleFromJsonThrowsWhenAFieldHasTheWrongJsonType) {
     EXPECT_THROW(Sample::FromJson(json), std::invalid_argument);
 }
 
+TEST(SampleTest, SampleFromJsonThrowsWhenTopLevelValueIsNotAnObject) {
+    EXPECT_THROW(Sample::FromJson(JsonValue::MakeArray()), std::invalid_argument);
+}
+
 TEST(SampleTest, SampleFromJsonDoesNotThrowOnOutOfDomainButWellTypedValues) {
     JsonValue json = MakeValidSampleJson();
     json.Set("yield", 2.0);  // out of the [0,1] business range, but a well-typed Number

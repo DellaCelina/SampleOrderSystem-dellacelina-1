@@ -77,20 +77,46 @@ TEST(OrderTest, OrderRoundTripsThroughToJsonFromJsonForEachStatusValue) {
     }
 }
 
-TEST(OrderTest, OrderFromJsonThrowsWhenARequiredFieldIsMissing) {
+namespace {
+
+void ExpectThrowsWithFieldMissing(const std::string& missingField) {
     const std::vector<std::string> requiredFields = {
         "orderNumber", "sampleId", "customerName", "quantity", "status"};
 
-    for (const auto& missingField : requiredFields) {
-        JsonValue full = MakeValidOrderJson();
-        JsonValue withoutField = JsonValue::MakeObject();
-        for (const auto& field : requiredFields) {
-            if (field != missingField) {
-                withoutField.Set(field, full.Get(field));
-            }
+    JsonValue full = MakeValidOrderJson();
+    JsonValue withoutField = JsonValue::MakeObject();
+    for (const auto& field : requiredFields) {
+        if (field != missingField) {
+            withoutField.Set(field, full.Get(field));
         }
-        EXPECT_THROW(Order::FromJson(withoutField), std::invalid_argument);
     }
+    EXPECT_THROW(Order::FromJson(withoutField), std::invalid_argument);
+}
+
+}  // namespace
+
+TEST(OrderTest, OrderFromJsonThrowsWhenARequiredFieldIsMissing_MissingOrderNumber) {
+    ExpectThrowsWithFieldMissing("orderNumber");
+}
+
+TEST(OrderTest, OrderFromJsonThrowsWhenARequiredFieldIsMissing_MissingSampleId) {
+    ExpectThrowsWithFieldMissing("sampleId");
+}
+
+TEST(OrderTest, OrderFromJsonThrowsWhenARequiredFieldIsMissing_MissingCustomerName) {
+    ExpectThrowsWithFieldMissing("customerName");
+}
+
+TEST(OrderTest, OrderFromJsonThrowsWhenARequiredFieldIsMissing_MissingQuantity) {
+    ExpectThrowsWithFieldMissing("quantity");
+}
+
+TEST(OrderTest, OrderFromJsonThrowsWhenARequiredFieldIsMissing_MissingStatus) {
+    ExpectThrowsWithFieldMissing("status");
+}
+
+TEST(OrderTest, OrderFromJsonThrowsWhenTopLevelValueIsNotAnObject) {
+    EXPECT_THROW(Order::FromJson(JsonValue::MakeArray()), std::invalid_argument);
 }
 
 TEST(OrderTest, OrderFromJsonThrowsWhenStatusIsPresentButNotARecognizedValue) {

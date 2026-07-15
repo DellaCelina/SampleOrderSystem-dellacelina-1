@@ -49,6 +49,10 @@ JsonValue Order::ToJson() const {
 }
 
 Order Order::FromJson(const JsonValue& json) {
+    if (!json.IsObject()) {
+        throw std::invalid_argument("Order::FromJson: expected a JSON object");
+    }
+
     Order order;
 
     const JsonValue& orderNumber = RequireField(json, "orderNumber");

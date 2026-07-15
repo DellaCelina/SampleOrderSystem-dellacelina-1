@@ -27,6 +27,10 @@ JsonValue ProductionQueueEntry::ToJson() const {
 }
 
 ProductionQueueEntry ProductionQueueEntry::FromJson(const JsonValue& json) {
+    if (!json.IsObject()) {
+        throw std::invalid_argument("ProductionQueueEntry::FromJson: expected a JSON object");
+    }
+
     ProductionQueueEntry entry;
 
     const JsonValue& orderNumber = RequireField(json, "orderNumber");
