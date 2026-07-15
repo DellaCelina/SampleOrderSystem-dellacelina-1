@@ -13,15 +13,15 @@ Commit the three schema documents (field name/type/required-optional/constraints
 
 This phase delivers the schema documents plus the generic schema-validated JSON persistence layer that every repository (phase-5+) will sit on top of. It does **not** touch `TimePointToIso8601`/`ParseIso8601` (phase-4) or any domain model (`Sample`/`Order`/`ProductionQueueEntry`) — those consume this layer but are built separately. Everything here operates purely on `JsonValue` (from phase-2: `SampleOrderSystem/Json/JsonValue.h/.cpp`, `JsonParser.h/.cpp`, `JsonWriter.h/.cpp`).
 
-Assumed phase-2 `JsonValue` interface (adjust call sites if phase-2's actual signatures differ slightly, but the shape below is what this phase is designed against):
+**Real phase-2 interface (corrects the assumption this section originally guessed at):** everything is in the **global namespace** (no `SampleOrderSystem::Json`), matching phase-1's real committed code. `JsonValue::AsObject() const -> const JsonValue::ObjectEntries&` where `ObjectEntries = std::vector<std::pair<std::string, JsonValue>>` — **not** a `std::map`/`std::unordered_map` as originally guessed below; this doesn't affect this phase since nothing here iterates a record's fields directly, only `Has`/`Get`. `JsonValue::Get` **throws `std::out_of_range`** on a missing key or non-object value (resolved, not left ambiguous); `TryGet` is also available (non-throwing pointer) for callers that prefer to check first. `JsonParser::Parse`'s `JsonParseException` additionally exposes `.Line()`/`.Column()` beyond `.what()`.
+
+Original (superseded) assumption, kept for reference:
 - `enum class JsonType { Null, Bool, Number, String, Array, Object };`
 - `JsonValue::Type() const -> JsonType`
 - Accessors: `AsBool() const -> bool`, `AsNumber() const -> double`, `AsString() const -> const std::string&`, `AsArray() const -> const std::vector<JsonValue>&`, `AsObject() const -> const std::map<std::string, JsonValue>&` (or similar ordered/unordered map — order doesn't matter here since we index by field name)
 - `JsonValue::Has(const std::string& key) const -> bool` and `JsonValue::Get(const std::string& key) const -> const JsonValue&` for object field lookup (throws or returns a Null sentinel if absent — validator must not assume either without checking `Has` first)
 - `JsonParser::Parse(const std::string& text) -> JsonValue`, throwing `JsonParseException` (has `.what()`) on malformed input.
 - `JsonWriter::Write(const JsonValue&) -> std::string` (pretty-printed).
-
-If phase-2 exposes a different but equivalent API (e.g. `std::optional<JsonValue> TryGet`), adapt this phase's code to it directly — the test *behaviors* below are what must be preserved, not the exact accessor names.
 
 ## 1. Schema documents (`schema/*.schema.json`)
 
@@ -54,7 +54,6 @@ Field constraint vocabulary used across all three (this is the complete set `Sch
 In-memory descriptor structs, parsed once from the schema JSON files above (no separate `.cpp` needed if kept header-only with inline functions, but a `.cpp` is fine too — this phase doesn't mandate one, `touches` only lists the `.h`, so keep the parsing function inline in the header or add a `Schema.cpp` if the implementer finds that cleaner; if a `.cpp` is added, note the deviation from `touches` in the PR/commit but it's a low-risk, expected adjustment).
 
 ```cpp
-namespace SampleOrderSystem::Persistence {
 
 enum class FieldType { String, Integer, Number, Boolean };
 
@@ -85,7 +84,6 @@ struct Schema {
     static Schema FromJson(const JsonValue& schemaDoc);
 };
 
-} // namespace SampleOrderSystem::Persistence
 ```
 
 Note: `Schema::FromJson` parses the schema-*document* shape (the meta-schema above), not a data record. Loading the three `.schema.json` files into `Schema` objects happens once (e.g. in `main.cpp` or a small static registry) and the resulting `Schema` instances are passed into `SchemaValidator`/`JsonFileStore` calls — this phase should provide a small free helper, e.g. `Schema LoadSchemaFromFile(const std::string& path)`, that reads the file and calls `JsonParser::Parse` + `Schema::FromJson`, since every table-loader will need this exact sequence.
@@ -93,7 +91,6 @@ Note: `Schema::FromJson` parses the schema-*document* shape (the meta-schema abo
 ## 3. `SampleOrderSystem/Persistence/SchemaValidator.h` / `.cpp`
 
 ```cpp
-namespace SampleOrderSystem::Persistence {
 
 struct ValidationError {
     std::string message;              // human-readable, e.g. "record[2].yield: expected number in (0, 1], got 1.5"
@@ -107,8 +104,6 @@ struct ValidationError {
 // or the FIRST validation error encountered (fail-fast — does not collect
 // every error in the table, just enough to report one clear reason).
 std::optional<ValidationError> Validate(const JsonValue& data, const Schema& schema);
-
-}
 ```
 
 Behavior details the implementation must get right:
@@ -127,7 +122,6 @@ Behavior details the implementation must get right:
 ## 4. `SampleOrderSystem/Persistence/JsonFileStore.h` / `.cpp`
 
 ```cpp
-namespace SampleOrderSystem::Persistence {
 
 class JsonFileStoreException : public std::runtime_error {
 public:
@@ -184,8 +178,6 @@ private:
     std::string filePath_;
     Schema schema_;
 };
-
-}
 ```
 
 Notes on the temp-file/atomic-rename mechanism: use `std::filesystem::path` for portability; create the temp file path by appending `.tmp` to `filePath_`; write with a `std::ofstream` opened in truncate mode, flush and close it before renaming (renaming over an open handle can fail on Windows); use `std::filesystem::rename(tempPath, targetPath, ec)` with an `std::error_code` overload so a failure can be turned into a `JsonFileStoreException` with a clear message rather than an uncaught `filesystem_error`.
@@ -237,10 +229,10 @@ Directory-not-existing on `Save`: if the parent directory of `filePath_` doesn't
 
 ## Interface surface this phase must expose for downstream phases
 
-- `SampleOrderSystem::Persistence::Schema` (struct), `Schema::FromJson(const JsonValue&) -> Schema`, and a free function `Schema LoadSchemaFromFile(const std::string& path)` — repositories (phase-5+) will call this once per table at construction.
-- `SampleOrderSystem::Persistence::FieldType`, `FieldSchema` — exposed for anyone writing additional schema-driven tooling (e.g. `DummyDataGenerator` in a later phase may want to introspect field constraints to generate valid random data).
-- `SampleOrderSystem::Persistence::ValidationError`, `SampleOrderSystem::Persistence::Validate(const JsonValue&, const Schema&) -> std::optional<ValidationError>` — usable standalone (e.g. if a future phase wants to validate a single new record before appending, without going through a full `Load`/`Save` cycle).
-- `SampleOrderSystem::Persistence::JsonFileStore` — constructed with `(filePath, schema)`, exposing `Load() -> JsonValue` and `Save(const JsonValue&) -> void`, both usable by every repository (`SampleRepository`, `OrderRepository`, `ProductionQueueRepository` in later phases) as their sole means of touching the filesystem for domain data. `JsonFileStoreException` is the one error type repositories need to catch/propagate (per the architecture's "propagates the error up to `main.cpp`, which reports it to console and exits" rule — repositories should NOT catch this themselves and fall back to an empty table).
+- `Schema` (struct), `Schema::FromJson(const JsonValue&) -> Schema`, and a free function `Schema LoadSchemaFromFile(const std::string& path)` — repositories (phase-5+) will call this once per table at construction.
+- `FieldType`, `FieldSchema` — exposed for anyone writing additional schema-driven tooling (e.g. `DummyDataGenerator` in a later phase may want to introspect field constraints to generate valid random data).
+- `ValidationError`, `Validate(const JsonValue&, const Schema&) -> std::optional<ValidationError>` — usable standalone (e.g. if a future phase wants to validate a single new record before appending, without going through a full `Load`/`Save` cycle).
+- `JsonFileStore` — constructed with `(filePath, schema)`, exposing `Load() -> JsonValue` and `Save(const JsonValue&) -> void`, both usable by every repository (`SampleRepository`, `OrderRepository`, `ProductionQueueRepository` in later phases) as their sole means of touching the filesystem for domain data. `JsonFileStoreException` is the one error type repositories need to catch/propagate (per the architecture's "propagates the error up to `main.cpp`, which reports it to console and exits" rule — repositories should NOT catch this themselves and fall back to an empty table).
 
 ## vcxproj wiring
 
