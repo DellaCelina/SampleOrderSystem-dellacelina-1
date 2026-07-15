@@ -184,7 +184,7 @@ Notes on the temp-file/atomic-rename mechanism: use `std::filesystem::path` for 
 
 Directory-not-existing on `Save`: if the parent directory of `filePath_` doesn't exist, create it with `std::filesystem::create_directories` before writing the temp file (so a fresh checkout without a pre-existing `data/` folder doesn't require manual setup) — do this in `Save`, not `Load` (Load's "file doesn't exist → empty array" branch should not create directories as a side effect of a read).
 
-## Unit tests to write (Catch2, in `SampleOrderSystemTests`)
+## Unit tests to write (GoogleTest/GoogleMock, in `SampleOrderSystemTests` — see phase-1's DETAIL.md superseding note: the test framework switched from Catch2 to GoogleTest/GoogleMock mid-implementation; write these as `TEST(Suite, Case)`/`EXPECT_*`, and use GoogleMock `MOCK_METHOD` where a collaborator needs mocking rather than a hand-rolled fake)
 
 **Schema parsing (`Schema::FromJson`)**
 - Valid schema document for each of the three real files parses without throwing and produces the expected field list/types/constraints (spot-check a few fields per table, e.g. `order.schema.json`'s `orderNumber` has `pattern` set and `status` has the 5-value `enumValues`).

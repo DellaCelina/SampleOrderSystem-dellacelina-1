@@ -7,6 +7,11 @@
 
 Implement OrderService::SubmitOrder (validates sample exists and quantity>0, issues next order number, creates Reserved order), ListPendingApprovals (Reserved-only filter), Approve (calls ProductionService::SettleDueEntries first, then computes unclaimed stock = max(0, currentStock - sum of other Producing/Confirmed order quantities for that sample), decides Confirmed vs enqueue-and-Producing), Reject (Reserved->Rejected), and Release (Confirmed->Released with stock decrement, rejecting any other starting status). Covers the 50-then-100-then-100 unclaimed-stock acceptance scenario and the settle-then-decide ordering as unit tests against phase-6's ProductionService and phase-5's repositories. Add Services/OrderService.h/.cpp to SampleOrderSystemTests.vcxproj.
 
+**Namespace/test-framework correction:** everything is in the **global namespace** (no
+`Services::`/`Models::`/`Core::`/`Repositories::` wrappers), matching phase-1/2/4's real committed
+code. `IClock::Now()` returns `std::chrono::system_clock::time_point` directly. Tests are
+GoogleTest, not Catch2 — see phase-1's DETAIL.md superseding note.
+
 ## Detail
 
 ## Scope
@@ -17,7 +22,6 @@ This phase assumes the following already exist from phase-5 (models/repositories
 
 ```cpp
 // Models/Order.h (phase-5)
-namespace SampleOrderSystem::Models {
 enum class OrderStatus { Reserved, Confirmed, Producing, Released, Rejected };
 struct Order {
     std::string orderNumber;   // "ORD-####"
@@ -26,10 +30,8 @@ struct Order {
     int quantity;
     OrderStatus status;
 };
-}
 
 // Models/Sample.h (phase-5)
-namespace SampleOrderSystem::Models {
 struct Sample {
     std::string sampleId;
     std::string name;
@@ -37,38 +39,32 @@ struct Sample {
     double yield;
     int currentStock;
 };
-}
 
 // Repositories/OrderRepository.h (phase-5)
-namespace SampleOrderSystem::Repositories {
 class OrderRepository {
 public:
     std::string NextOrderNumber();                 // "ORD-0001", "ORD-0002", ... derived from max existing suffix at load
-    void Add(const Models::Order& order);           // append-only creation
-    std::optional<Models::Order> FindByOrderNumber(const std::string& orderNumber) const;
-    std::vector<Models::Order> FindAll() const;
-    std::vector<Models::Order> FindBySampleId(const std::string& sampleId) const;
-    void UpdateStatus(const std::string& orderNumber, Models::OrderStatus newStatus); // persists
+    void Add(const Order& order);           // append-only creation
+    std::optional<Order> FindByOrderNumber(const std::string& orderNumber) const;
+    std::vector<Order> FindAll() const;
+    std::vector<Order> FindBySampleId(const std::string& sampleId) const;
+    void UpdateStatus(const std::string& orderNumber, OrderStatus newStatus); // persists
 };
-}
 
 // Repositories/SampleRepository.h (phase-5)
-namespace SampleOrderSystem::Repositories {
 class SampleRepository {
 public:
-    std::optional<Models::Sample> FindById(const std::string& sampleId) const;
+    std::optional<Sample> FindById(const std::string& sampleId) const;
     void AdjustStock(const std::string& sampleId, int delta); // currentStock += delta; persists
 };
-}
 
 // Services/ProductionService.h (phase-6)
-namespace SampleOrderSystem::Services {
 class ProductionService {
 public:
     static int ComputeShortfall(int orderQuantity, int unclaimedStock); // max(orderQuantity - unclaimedStock, ...) — only called when unclaimedStock < orderQuantity, so no clamping needed here
     static int ComputeActualQuantity(int shortfall, double yield);      // ceil(shortfall / yield)
-    Models::ProductionQueueEntry Enqueue(const std::string& orderNumber, const std::string& sampleId,
-                 int shortfallQuantity, Core::IClock& clock);
+    ProductionQueueEntry Enqueue(const std::string& orderNumber, const std::string& sampleId,
+                 int shortfallQuantity, IClock& clock);
         // per phase-6's real contract: takes only the already-computed shortfallQuantity (NOT
         // actualProducedQuantity — Enqueue looks up the sample and computes actualQty/duration
         // itself internally via the pure functions above), computes expectedCompletionAt from the
@@ -76,15 +72,12 @@ public:
         // persists the ProductionQueueEntry to data/production_queue.json, and returns the created
         // entry by value. OrderService does NOT call ComputeActualQuantity itself before calling
         // Enqueue — that computation lives inside Enqueue, per phase-6's DETAIL.md.
-    void SettleDueEntries(Core::IClock& clock);
+    void SettleDueEntries(IClock& clock);
         // sweeps due entries, increments sample stock, flips matching order Producing->Confirmed, persists
 };
-}
 
 // Core/IClock.h (phase-1/2, already exists)
-namespace SampleOrderSystem::Core {
-class IClock { public: virtual TimePoint Now() const = 0; virtual ~IClock() = default; };
-}
+class IClock { public: virtual std::chrono::system_clock::time_point Now() const = 0; virtual ~IClock() = default; };
 ```
 
 If `OrderRepository::FindByOrderNumber`/`UpdateStatus` or `SampleRepository::AdjustStock` don't exist under these exact names in the real phase-5 output, use whatever equivalent phase-5 actually exposes (e.g. a generic `Update(Order)` taking a full record) — the important contract this phase relies on is: order lookup by order number, an order status mutation that persists, and a sample stock delta mutation that persists.
@@ -94,7 +87,6 @@ If `OrderRepository::FindByOrderNumber`/`UpdateStatus` or `SampleRepository::Adj
 No exceptions are used for expected business-rule rejections (unknown sample, bad quantity, wrong status, unknown order number) — these are normal control flow, not bugs. Introduce a small result type in `OrderService.h`:
 
 ```cpp
-namespace SampleOrderSystem::Services {
 
 enum class OrderServiceErrorCode {
     SampleNotFound,
@@ -125,43 +117,40 @@ private:
     std::optional<OrderServiceError> error_;
 };
 
-}
 ```
 
-`ListPendingApprovals` has no failure mode, so it just returns `std::vector<Models::Order>` directly (not wrapped).
+`ListPendingApprovals` has no failure mode, so it just returns `std::vector<Order>` directly (not wrapped).
 
 ## Public interface (`OrderService.h`)
 
 ```cpp
-namespace SampleOrderSystem::Services {
 
 class OrderService {
 public:
-    OrderService(Repositories::OrderRepository& orderRepository,
-                 Repositories::SampleRepository& sampleRepository,
+    OrderService(OrderRepository& orderRepository,
+                 SampleRepository& sampleRepository,
                  ProductionService& productionService);
 
-    OrderServiceResult<Models::Order> SubmitOrder(const std::string& sampleId,
+    OrderServiceResult<Order> SubmitOrder(const std::string& sampleId,
                                                    const std::string& customerName,
                                                    int quantity);
 
-    std::vector<Models::Order> ListPendingApprovals() const;
+    std::vector<Order> ListPendingApprovals() const;
 
-    OrderServiceResult<Models::Order> Approve(const std::string& orderNumber, Core::IClock& clock);
+    OrderServiceResult<Order> Approve(const std::string& orderNumber, IClock& clock);
 
-    OrderServiceResult<Models::Order> Reject(const std::string& orderNumber);
+    OrderServiceResult<Order> Reject(const std::string& orderNumber);
 
-    OrderServiceResult<Models::Order> Release(const std::string& orderNumber);
+    OrderServiceResult<Order> Release(const std::string& orderNumber);
 
 private:
     int ComputeUnclaimedStock(const std::string& sampleId) const;
 
-    Repositories::OrderRepository& orderRepository_;
-    Repositories::SampleRepository& sampleRepository_;
+    OrderRepository& orderRepository_;
+    SampleRepository& sampleRepository_;
     ProductionService& productionService_;
 };
 
-}
 ```
 
 Note `ListPendingApprovals` and `SubmitOrder` deliberately take **no** `IClock&` — per ARCHITECTURE.md's Data Flow section, the lazy-settlement sweep before the pending-list *query* is the caller's (controller's) responsibility, not something `OrderService::ListPendingApprovals` does internally. Only `Approve` settles, because `Approve` itself is the thing reading+mutating order/stock/queue state that the requirement's lazy-settlement rule targets (Key Design Decision #3). Do not add a clock parameter to `ListPendingApprovals`/`SubmitOrder`/`Reject`/`Release` — `Reject`/`Release` don't touch production-queue timing at all, and adding an unused clock parameter to them would misrepresent that.

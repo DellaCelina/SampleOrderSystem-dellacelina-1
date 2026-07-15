@@ -170,9 +170,9 @@ Menu items and their dispatch targets (numbering is this phase's own choice; kee
 
 ## Testing strategy (this phase must explicitly resolve ARCHITECTURE.md's Open Question #4 for itself)
 
-Per the architecture's "Build/test wiring" section, `SampleOrderSystemTests.vcxproj` only compiles `Core/`, `Json/`, `Persistence/`, `Models/`, `Repositories/`, `Services/` — explicitly **not** `Controllers/`, `Views/`, or `main.cpp`. This phase does not overturn that; `MainMenuController`'s interactive loop and `main.cpp`'s wiring get **manual/smoke verification only**, not Catch2 coverage, for this iteration. State this explicitly rather than silently having zero tests for the phase:
+Per the architecture's "Build/test wiring" section, `SampleOrderSystemTests.vcxproj` only compiles `Core/`, `Json/`, `Persistence/`, `Models/`, `Repositories/`, `Services/` — explicitly **not** `Controllers/`, `Views/`, or `main.cpp`. This phase does not overturn that; `MainMenuController`'s interactive loop and `main.cpp`'s wiring get **manual/smoke verification only**, not GoogleTest coverage, for this iteration. State this explicitly rather than silently having zero tests for the phase:
 
-1. **Unit-testable via Catch2 (requires adding `MainMenuController.h` — header only, not `.cpp` — to `SampleOrderSystemTests.vcxproj`'s compiled/included sources, since `ParseCliArgs` is a free function with zero dependency on Controllers/Views/repositories):**
+1. **Unit-testable via GoogleTest (requires adding `MainMenuController.h` — header only, not `.cpp` — to `SampleOrderSystemTests.vcxproj`'s compiled/included sources, since `ParseCliArgs` is a free function with zero dependency on Controllers/Views/repositories):**
    - `ParseCliArgs` with no args → `CliMode::Interactive`.
    - `ParseCliArgs` with `--dummy-data` → `CliMode::DummyData`, `dummyDataCount == 20` (default).
    - `ParseCliArgs` with `--dummy-data=50` → `CliMode::DummyData`, `dummyDataCount == 50`.
@@ -183,7 +183,7 @@ Per the architecture's "Build/test wiring" section, `SampleOrderSystemTests.vcxp
    - `ParseCliArgs` with an unrecognized flag (e.g. `--bogus`) → `CliMode::Error`.
    - `ParseCliArgs` with a flag plus unrelated positional garbage → decide and test one consistent behavior (recommended: treat unexpected positional args the same as an unknown flag → `CliMode::Error`, since the requirement doesn't call for positional args at all).
 
-2. **Not unit-testable this iteration (manual verification checklist to include in the phase's own notes/PR description, since it isn't Catch2 coverage):**
+2. **Not unit-testable this iteration (manual verification checklist to include in the phase's own notes/PR description, since it isn't GoogleTest coverage):**
    - Launching the built `.exe` from a directory other than its own (e.g. via `cd C:\; .\path\to\SampleOrderSystem.exe`) still finds `data/`/`schema/` correctly — proves the exe-relative path resolution.
    - `--dummy-data` and `--data-monitor` run their mode and exit without ever printing the interactive menu.
    - Each of the 11 interactive menu items dispatches to the right controller (spot-check a couple, e.g. option 5 approve vs option 6 reject, since these are easy to transpose).

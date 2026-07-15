@@ -7,6 +7,12 @@
 
 Implement schema-driven random Sample/Order generation that writes records directly through SampleRepository/OrderRepository/ProductionQueueRepository (not through the OrderService/ProductionService orchestration methods Approve/SettleDueEntries), distributing generated orders across all five statuses and maintaining the same invariants a real order would have. REVISED: to avoid a second, independently-implemented copy of the shortfall/actual-quantity/FIFO-chain-against-tail math (which risks silently diverging from phase-6's rules), DummyDataGenerator must call ProductionService's pure computation functions (ComputeShortfall, ComputeActualQuantity, ComputeCompletionTime — exposed per phase-6) directly to derive each generated Producing order's ProductionQueueEntry (actualProducedQuantity/shortfall/expectedCompletionAt) and matching stock claim, rather than reimplementing that arithmetic. This means phase-9 genuinely depends on phase-6 (not just phase-4/phase-5 as originally claimed), and is NOT independent of it; it can still proceed in parallel with phase-7 and phase-8 (no dependency on OrderService or on MonitoringService/ProductionLineViewService) once phase-6 is done. Add Services/DummyDataGenerator.h/.cpp to SampleOrderSystemTests.vcxproj.
 
+**Namespace/test-framework correction:** everything is in the **global namespace** (no
+`SampleOrderSystem::Services`/`Models::`/`Core::`/`Repositories::` wrappers), matching phase-1/2/4's
+real committed code. `Order`'s status field type is the free enum `OrderStatus` (not a nested
+`Order::Status`). `IClock::Now()` returns `std::chrono::system_clock::time_point` directly. Tests
+are GoogleTest, not Catch2 — see phase-1's DETAIL.md superseding note.
+
 ## Detail
 
 ## Behavior to implement
@@ -16,7 +22,6 @@ Implement schema-driven random Sample/Order generation that writes records direc
 ### Header: `SampleOrderSystem/Services/DummyDataGenerator.h`
 
 ```cpp
-namespace SampleOrderSystem::Services {
 
 struct DummyDataOptions {
     int sampleCount = 10;
@@ -28,10 +33,10 @@ public:
     // seed is mandatory (no default) precisely so tests are always deterministic;
     // a production caller (DummyDataController, a later phase) picks its own seed
     // (e.g. std::random_device{}() for variety, or a fixed constant for a stable demo).
-    DummyDataGenerator(Repositories::SampleRepository& sampleRepo,
-                        Repositories::OrderRepository& orderRepo,
-                        Repositories::ProductionQueueRepository& queueRepo,
-                        Core::IClock& clock,
+    DummyDataGenerator(SampleRepository& sampleRepo,
+                        OrderRepository& orderRepo,
+                        ProductionQueueRepository& queueRepo,
+                        IClock& clock,
                         unsigned int seed);
 
     // Generates `count` new Sample records with randomized-but-valid attributes and
@@ -54,25 +59,23 @@ public:
     void GenerateAll(const DummyDataOptions& options = {});
 
 private:
-    Models::Order::Status PickStatusForSlot(int slotIndex, int totalCount) const;
-    int  UnclaimedStock(const Models::Sample& sample) const;              // currentStock - runningClaims_[sampleId]
+    OrderStatus PickStatusForSlot(int slotIndex, int totalCount) const;
+    int  UnclaimedStock(const Sample& sample) const;              // currentStock - runningClaims_[sampleId]
     void RecordClaim(const std::string& sampleId, int quantity);         // runningClaims_[sampleId] += quantity
-    void TopUpStockIfNeeded(Models::Sample& sample, int minUnclaimed);   // raises currentStock, persists via SampleRepository
+    void TopUpStockIfNeeded(Sample& sample, int minUnclaimed);   // raises currentStock, persists via SampleRepository
     std::string NextSampleId();       // "SMP-####", derived from max existing suffix + 1 (see below)
     std::string RandomCustomerName();
     std::string RandomSampleName();
     int    RandomQuantity(int lo, int hi);
 
-    Repositories::SampleRepository&         sampleRepo_;
-    Repositories::OrderRepository&          orderRepo_;
-    Repositories::ProductionQueueRepository& queueRepo_;
-    Core::IClock&                           clock_;
+    SampleRepository&         sampleRepo_;
+    OrderRepository&          orderRepo_;
+    ProductionQueueRepository& queueRepo_;
+    IClock&                           clock_;
     std::mt19937                            rng_;
     std::unordered_map<std::string,int>     runningClaims_; // per-sample cumulative Producing+Confirmed claim,
                                                               // seeded at construction from pre-existing orders
 };
-
-}
 ```
 
 Note on repository method names: the exact method names (`SampleRepository::Add`, `OrderRepository::Add`/`NextOrderNumber`, `ProductionQueueRepository::Append`/`GetAll`) must match whatever phase-4/phase-5 actually expose — the names above are illustrative. What is normative and must not drift is the *behavior* described in this document (what gets claimed, when stock changes, how completion time is derived).
@@ -113,8 +116,8 @@ For each slot, in the (shuffled) assignment order:
      - Determine the FIFO tail: read the current last entry (if any) from `ProductionQueueRepository`'s full contents (across *all* samples — the production line is one global FIFO, not per-sample, per ARCHITECTURE.md's Components section on `ProductionService`); use its `expectedCompletionAt` as the anchor, or `clock_.Now()` if the queue is empty.
      - `enqueuedAt = clock_.Now()`
      - `auto durationMinutes = ProductionService::ComputeProductionDurationMinutes(actualProducedQuantity, sample.averageProductionTimeMinutes);` (matches phase-6's `ComputeProductionDurationMinutes` signature exactly — do not inline the multiplication here)
-     - `auto previousTailCompletion = <the anchor read above, as std::optional<Core::TimePoint> — nullopt if the queue was empty>;`
-     - `expectedCompletionAt = ProductionService::ComputeCompletionTime(enqueuedAt, previousTailCompletion, durationMinutes);` — this matches phase-6's real 3-arg contract (`Core::TimePoint enqueuedAt, std::optional<Core::TimePoint> previousTailCompletion, int durationMinutes`) exactly; the anchor/tail value is passed as the *second* argument (`previousTailCompletion`), never as the first (`enqueuedAt` is always `clock_.Now()`), since swapping them would invert the FIFO `max(enqueuedAt, previousTailCompletion)` semantics.
+     - `auto previousTailCompletion = <the anchor read above, as std::optional<std::chrono::system_clock::time_point> — nullopt if the queue was empty>;`
+     - `expectedCompletionAt = ProductionService::ComputeCompletionTime(enqueuedAt, previousTailCompletion, durationMinutes);` — this matches phase-6's real 3-arg contract (`std::chrono::system_clock::time_point enqueuedAt, std::optional<std::chrono::system_clock::time_point> previousTailCompletion, int durationMinutes`) exactly; the anchor/tail value is passed as the *second* argument (`previousTailCompletion`), never as the first (`enqueuedAt` is always `clock_.Now()`), since swapping them would invert the FIFO `max(enqueuedAt, previousTailCompletion)` semantics.
      - Persist a new `ProductionQueueEntry{orderNumber, sampleId, shortfall, actualProducedQuantity, enqueuedAt, expectedCompletionAt}` via `ProductionQueueRepository`, appended (so it becomes the new tail for the *next* generated Producing entry in this same call — entries must chain correctly against each other, not just against pre-existing queue contents).
      - Create the order with status `Producing`.
      - Call `RecordClaim(sampleId, quantity)` — full requested quantity, matching Key Design Decision #2 (Producing claims the full quantity, not just the shortfall).
@@ -137,7 +140,7 @@ For each slot, in the (shuffled) assignment order:
 - Coverage of all five statuses is only *guaranteed* when `orderCount >= 5`; below that, coverage is partial by design — call this out in a test rather than silently expecting full coverage at small counts.
 - Determinism: same seed + same starting repository state must produce identical generated records (needed for reproducible bug reports/test fixtures) — note that this determinism is scoped to a single toolchain (MSVC's STL `std::mt19937`/`std::uniform_int_distribution`), not cross-platform-stable, which is fine since the whole project only ever builds with MSVC.
 
-## Unit tests to write (Catch2, using a `FakeClock` and real repository instances pointed at a fresh temp directory per test — no mocks of the repositories themselves, since the point is to verify actual persisted JSON state)
+## Unit tests to write (GoogleTest/GoogleMock, using a `FakeClock` and real repository instances pointed at a fresh temp directory per test — no mocks of the repositories themselves, since the point is to verify actual persisted JSON state)
 
 1. `GenerateSamples_CreatesRequestedCount_WithValidFields` — generate N samples; assert N records land in `SampleRepository`, each with unique `sampleId`, `averageProductionTimeMinutes > 0`, `0 < yield <= 1`, `currentStock >= 0`.
 2. `GenerateSamples_ZeroOrNegativeCount_IsNoOp` — `count = 0` and `count = -1` both return `{}` and leave the repository untouched.

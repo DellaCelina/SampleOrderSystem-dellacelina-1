@@ -7,11 +7,17 @@
 
 Implement ProductionService's ComputeShortfall, ComputeActualQuantity (ceil(shortfall/yield)), ComputeCompletionTime (the FIFO chain rule max(enqueue_time, prevCompletion)+duration against the current queue tail), Enqueue (persists a new ProductionQueueEntry), and SettleDueEntries(IClock&) — the single lazy-reconciliation entry point that sweeps ProductionQueueRepository for entries whose expectedCompletionAt has passed, increments sample stock by actualProducedQuantity, and flips the matching order Producing->Confirmed. ComputeShortfall/ComputeActualQuantity/ComputeCompletionTime must be exposed as pure, independently-callable functions/static methods on ProductionService (not private helpers folded into Enqueue), because phase-9 (DummyDataGenerator) needs to call this exact same math to keep generated Producing orders' queue entries consistent with real orders' — see phase-9. Tested with FakeClock for deterministic multi-entry FIFO chaining and idempotent no-op sweeps. This is the core production-domain logic that OrderService, MonitoringService, ProductionLineViewService, and DummyDataGenerator will all call into, so it must land before phase-7/phase-8/phase-9. Add Services/ProductionService.h/.cpp to SampleOrderSystemTests.vcxproj.
 
+**Namespace/test-framework correction:** everything below is written in the **global namespace**
+(no `Services::`/`Models::`/`Core::`/`Repositories::` wrappers), matching phase-1/phase-2/phase-4's
+real committed code — `class ProductionService` is a plain global class. `IClock::Now()` returns
+`std::chrono::system_clock::time_point` directly (no `TimePoint` alias). Tests are GoogleTest
+(`TEST(Suite, Case)`/`EXPECT_*`), not Catch2 — see phase-1's DETAIL.md superseding note.
+
 ## Detail
 
 ## Scope
 
-Implement `ProductionService` — the sole owner of shortfall/production-quantity/FIFO-completion-time math and the single lazy-settlement sweep (`SettleDueEntries`). This phase does **not** touch `OrderService`, `MonitoringService`, or `ProductionLineViewService` (phase-7/8) — it only builds the class those phases and phase-9 (`DummyDataGenerator`) will call into. Depends on phase-1 (`Core::IClock`) and phase-4 (`Models::Sample`, `Models::Order`/`OrderStatus`, `Models::ProductionQueueEntry`) transitively via phase-5 (`SampleRepository`, `OrderRepository`, `ProductionQueueRepository`), which this phase depends on directly. If phase-5's actual repository method names differ from the ones assumed below, adapt the call sites to match phase-5's real signatures — the important, fixed thing is `ProductionService`'s own public interface, not the exact repository API it happens to call.
+Implement `ProductionService` — the sole owner of shortfall/production-quantity/FIFO-completion-time math and the single lazy-settlement sweep (`SettleDueEntries`). This phase does **not** touch `OrderService`, `MonitoringService`, or `ProductionLineViewService` (phase-7/8) — it only builds the class those phases and phase-9 (`DummyDataGenerator`) will call into. Depends on phase-1 (`IClock`) and phase-4 (`Sample`, `Order`/`OrderStatus`, `ProductionQueueEntry`) transitively via phase-5 (`SampleRepository`, `OrderRepository`, `ProductionQueueRepository`), which this phase depends on directly. If phase-5's actual repository method names differ from the ones assumed below, adapt the call sites to match phase-5's real signatures — the important, fixed thing is `ProductionService`'s own public interface, not the exact repository API it happens to call.
 
 ## Public interface (`SampleOrderSystem/Services/ProductionService.h`)
 
@@ -24,13 +30,12 @@ Implement `ProductionService` — the sole owner of shortfall/production-quantit
 #include "Repositories/OrderRepository.h"
 #include "Repositories/ProductionQueueRepository.h"
 
-namespace Services {
 
 class ProductionService {
 public:
-    ProductionService(Repositories::SampleRepository& samples,
-                       Repositories::OrderRepository& orders,
-                       Repositories::ProductionQueueRepository& queue);
+    ProductionService(SampleRepository& samples,
+                       OrderRepository& orders,
+                       ProductionQueueRepository& queue);
 
     // ---- Pure, stateless math. No repository/file access. Safe to call
     // standalone (this is the contract phase-9's DummyDataGenerator relies on
@@ -65,9 +70,9 @@ public:
     // path -- but this function does not assume or enforce that; it is a
     // pure max/add and behaves correctly (returns enqueuedAt + duration)
     // even if a stale/past previousTailCompletion is passed in.
-    static Core::TimePoint ComputeCompletionTime(
-        Core::TimePoint enqueuedAt,
-        std::optional<Core::TimePoint> previousTailCompletion,
+    static std::chrono::system_clock::time_point ComputeCompletionTime(
+        std::chrono::system_clock::time_point enqueuedAt,
+        std::optional<std::chrono::system_clock::time_point> previousTailCompletion,
         int durationMinutes);
 
     // ---- Stateful operations (repository/file access) ----
@@ -84,22 +89,21 @@ public:
     // decide Confirmed-vs-Producing; that decision and the
     // unclaimed-stock-based shortfall computation stay in OrderService
     // (phase-7); this method receives an already-computed shortfall.
-    Models::ProductionQueueEntry Enqueue(const std::string& orderNumber,
+    ProductionQueueEntry Enqueue(const std::string& orderNumber,
                                           const std::string& sampleId,
                                           int shortfallQuantity,
-                                          Core::IClock& clock);
+                                          IClock& clock);
 
     // The single lazy-reconciliation entry point. Idempotent, cheap no-op
     // when nothing is due. See "SettleDueEntries behavior" below.
-    void SettleDueEntries(Core::IClock& clock);
+    void SettleDueEntries(IClock& clock);
 
 private:
-    Repositories::SampleRepository& m_samples;
-    Repositories::OrderRepository& m_orders;
-    Repositories::ProductionQueueRepository& m_queue;
+    SampleRepository& m_samples;
+    OrderRepository& m_orders;
+    ProductionQueueRepository& m_queue;
 };
 
-} // namespace Services
 ```
 
 Note on `Enqueue`'s signature: it deliberately takes an already-computed `shortfallQuantity` rather than `(requestedQuantity, unclaimedStock)`, because `OrderService::Approve` (phase-7) computes shortfall from its own unclaimed-stock formula (which needs order/sample data `Enqueue` has no reason to see) and only needs `ProductionService` to turn that shortfall into an actual-quantity + completion-time + persisted entry. `ComputeShortfall` is exposed separately as a pure function for phase-9 and for direct unit testing, not because `Enqueue` calls it internally.
@@ -114,7 +118,7 @@ Note on `Enqueue`'s signature: it deliberately takes an already-computed `shortf
 4. Persist: write back the updated sample stock, the updated order statuses, and the pruned queue (containing only the not-due entries, in their original relative order) — all before returning.
 5. If no entries are due, this is a true no-op: no file writes are forced (or, if `JsonFileStore`'s save is unconditional/cheap, at least no data changes) and repeated calls with an unchanged clock produce identical state.
 
-## Test list (Catch2, using `FakeClock`)
+## Test list (GoogleTest/GoogleMock, using `FakeClock`)
 
 Pure math:
 - `ComputeShortfall`: unclaimed >= requested => 0; unclaimed < requested => exact difference; unclaimed == 0 => shortfall == requested.
@@ -145,7 +149,7 @@ Pure math:
 
 ## Design notes / things intentionally left to this phase's implementer
 
-- `Core::TimePoint` and `IClock` come from phase-1; use whatever alias phase-1 defined (assumed here to be a `std::chrono::system_clock::time_point`-based alias per ARCHITECTURE.md's ISO-8601 discussion) rather than redefining a local type in this phase.
+- `std::chrono::system_clock::time_point` and `IClock` come from phase-1; use whatever alias phase-1 defined (assumed here to be a `std::chrono::system_clock::time_point`-based alias per ARCHITECTURE.md's ISO-8601 discussion) rather than redefining a local type in this phase.
 - `ProductionQueueEntry`'s field names (`orderNumber`, `sampleId`, `shortfallQuantity`, `actualProducedQuantity`, `enqueuedAt`, `expectedCompletionAt`) are fixed by phase-4's model; do not rename them here.
 - This phase does not implement or test JSON (de)serialization of `ProductionQueueEntry` itself (that's phase-4/phase-3's `ToJson`/`FromJson` and `JsonFileStore` responsibility) — tests here exercise `ProductionService` against the real `ProductionQueueRepository`/`SampleRepository`/`OrderRepository` from phase-5 (backed by real or temp-directory JSON files, per whatever test fixture convention phase-5's own tests established), not against hand-rolled mocks, so that the round-trip through actual persistence is exercised as part of settlement correctness.
 - `ProductionService` must not perform any console I/O and must not decide `Confirmed` vs `Producing` at approval time — that branching stays in `OrderService::Approve` (phase-7), which will call `ComputeShortfall`/`Enqueue` only when it has already decided a new order is going to `Producing`.

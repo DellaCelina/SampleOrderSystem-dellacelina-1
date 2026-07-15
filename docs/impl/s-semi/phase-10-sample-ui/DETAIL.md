@@ -7,6 +7,10 @@
 
 Implement the console rendering (SampleView, no file I/O) and input-handling/orchestration (SampleController, no direct JSON access) for registering samples (rejecting duplicate sample IDs without mutating the existing record) and listing/searching samples by exact ID or case-insensitive name substring, calling SampleRepository directly. Depends only on phase-5's SampleRepository; independent of Order/Production/Monitoring services and their UI, so it can be built in parallel with phases 6-9 and with phases 11-13.
 
+**Namespace/test-framework correction:** everything is in the **global namespace** (no
+`Views::`/`Models::`/`Repositories::` wrappers), matching phase-1/2/4/5's real committed code.
+Tests are GoogleTest, not Catch2 — see phase-1's DETAIL.md superseding note.
+
 ## Detail
 
 ## Behavior to implement
@@ -20,9 +24,9 @@ public:
     explicit SampleView(std::istream& in = std::cin, std::ostream& out = std::cout);
 
     // Output
-    void ShowSampleList(const std::vector<Models::Sample>& samples) const;   // used for both "list all" and search results
+    void ShowSampleList(const std::vector<Sample>& samples) const;   // used for both "list all" and search results
     void ShowNoSamples() const;                                             // printed by ShowSampleList when the vector is empty
-    void ShowRegistrationSuccess(const Models::Sample& sample) const;
+    void ShowRegistrationSuccess(const Sample& sample) const;
     void ShowError(const std::string& message) const;
 
     // Input (raw only — no parsing/validation here, that's the Controller's job)
@@ -45,15 +49,15 @@ Design choices baked in here, so the TDD implementer doesn't have to re-derive t
 namespace Controllers {
 class SampleController {
 public:
-    SampleController(Repositories::SampleRepository& repository, Views::SampleView& view);
+    SampleController(SampleRepository& repository, SampleView& view);
 
     void HandleRegister();   // register a new sample
     void HandleListAll();    // list every registered sample
     void HandleSearch();     // search by exact ID or case-insensitive name substring
 
 private:
-    Repositories::SampleRepository& repository_;
-    Views::SampleView& view_;
+    SampleRepository& repository_;
+    SampleView& view_;
 };
 }
 ```
@@ -66,16 +70,16 @@ Phase-5 is described as: `data/samples.json`; CRUD + `FindById` (exact) + `FindB
 namespace Repositories {
 class SampleRepository {
 public:
-    bool Add(const Models::Sample& sample);                                    // false + no mutation if sampleId already exists
-    std::optional<Models::Sample> FindById(const std::string& sampleId) const; // exact match
-    std::vector<Models::Sample> FindByNameSubstring(const std::string& text) const; // case-insensitive substring
-    std::vector<Models::Sample> GetAll() const;
+    bool Add(const Sample& sample);                                    // false + no mutation if sampleId already exists
+    std::optional<Sample> FindById(const std::string& sampleId) const; // exact match
+    std::vector<Sample> FindByNameSubstring(const std::string& text) const; // case-insensitive substring
+    std::vector<Sample> GetAll() const;
     // stock mutation helpers exist for Order/Production services — NOT used by this phase
 };
 }
 ```
 
-`Models::Sample` fields (from `docs/ARCHITECTURE.md`'s Domain models section): `sampleId` (string), `name` (string), `averageProductionTimeMinutes` (int), `yield` (double, `0 < yield <= 1`), `currentStock` (int).
+`Sample` fields (from `docs/ARCHITECTURE.md`'s Domain models section): `sampleId` (string), `name` (string), `averageProductionTimeMinutes` (int), `yield` (double, `0 < yield <= 1`), `currentStock` (int).
 
 ### `HandleRegister` flow and validation rules
 
@@ -85,7 +89,7 @@ public:
    - name non-empty after trim → else error and return.
    - average production time parses as an integer and is `> 0` → else error and return. (Non-numeric input and `<= 0` are both rejected; this phase does not need to distinguish "not a number" from "zero or negative" in the message text, just report *some* validation error and abort.)
    - yield parses as a floating point number and satisfies `0 < yield <= 1` → else error and return.
-3. Construct `Models::Sample{ sampleId, name, averageProductionTimeMinutes, yield, currentStock = 0 }` — **registration always sets `currentStock` to 0**; there is no "initial stock" prompt, since neither the requirement's scope bullet nor its acceptance criteria for registration mention an initial-stock input (stock only ever changes via production completion / release, which are out of this phase's scope).
+3. Construct `Sample{ sampleId, name, averageProductionTimeMinutes, yield, currentStock = 0 }` — **registration always sets `currentStock` to 0**; there is no "initial stock" prompt, since neither the requirement's scope bullet nor its acceptance criteria for registration mention an initial-stock input (stock only ever changes via production completion / release, which are out of this phase's scope).
 4. Call `repository_.Add(sample)`.
    - If it returns `true`: `view_.ShowRegistrationSuccess(sample)`.
    - If it returns `false` (duplicate ID): `view_.ShowError(...)` naming the duplicate id; the existing stored record must be provably untouched (this is phase-5's contract, but this phase's tests should still assert it black-box, since it's the acceptance-criterion behavior actually being exercised end-to-end here).
