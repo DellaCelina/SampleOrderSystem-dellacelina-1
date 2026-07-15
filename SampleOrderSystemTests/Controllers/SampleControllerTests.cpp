@@ -24,7 +24,7 @@ const char* kSampleSchemaJson = R"({
   "fields": [
     { "name": "sampleId", "type": "string", "required": true },
     { "name": "name", "type": "string", "required": true },
-    { "name": "averageProductionTimeMinutes", "type": "integer", "required": true, "min": 1 },
+    { "name": "averageProductionTimeMinutes", "type": "number", "required": true, "exclusiveMin": 0 },
     { "name": "yield", "type": "number", "required": true, "exclusiveMin": 0, "max": 1 },
     { "name": "currentStock", "type": "integer", "required": true, "min": 0 }
   ]

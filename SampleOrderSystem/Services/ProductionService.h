@@ -34,9 +34,13 @@ public:
     // this function does not itself validate that range.
     static int ComputeActualQuantity(int shortfall, double yield);
 
-    // actualProducedQuantity * averageProductionTimeMinutes.
+    // ceil(actualProducedQuantity * averageProductionTimeMinutes). averageProductionTimeMinutes
+    // may be a non-integral positive real number (e.g. 2.5 minutes/unit); the product is rounded
+    // UP to the next whole minute (never down) since std::chrono::minutes -- what this duration
+    // ultimately feeds into via ComputeCompletionTime -- has no sub-minute precision, and rounding
+    // down would let production appear to finish before it actually would.
     static int ComputeProductionDurationMinutes(int actualProducedQuantity,
-                                                 int averageProductionTimeMinutes);
+                                                 double averageProductionTimeMinutes);
 
     // FIFO chain rule: max(enqueuedAt, previousTailCompletion.value_or(enqueuedAt))
     // + minutes(durationMinutes). previousTailCompletion is the

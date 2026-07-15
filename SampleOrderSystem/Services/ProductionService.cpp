@@ -22,8 +22,8 @@ int ProductionService::ComputeActualQuantity(int shortfall, double yield) {
 }
 
 int ProductionService::ComputeProductionDurationMinutes(int actualProducedQuantity,
-                                                          int averageProductionTimeMinutes) {
-    return actualProducedQuantity * averageProductionTimeMinutes;
+                                                          double averageProductionTimeMinutes) {
+    return static_cast<int>(std::ceil(actualProducedQuantity * averageProductionTimeMinutes));
 }
 
 std::chrono::system_clock::time_point ProductionService::ComputeCompletionTime(

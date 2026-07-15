@@ -46,7 +46,7 @@ Sample Sample::FromJson(const JsonValue& json) {
     if (!averageProductionTimeMinutes.IsNumber()) {
         throw std::invalid_argument("Sample::FromJson: \"averageProductionTimeMinutes\" must be a number");
     }
-    sample.averageProductionTimeMinutes = static_cast<int>(averageProductionTimeMinutes.AsNumber());
+    sample.averageProductionTimeMinutes = averageProductionTimeMinutes.AsNumber();
 
     const JsonValue& yield = RequireField(json, "yield");
     if (!yield.IsNumber()) {

@@ -6,7 +6,7 @@
 struct Sample {
     std::string sampleId;
     std::string name;
-    int averageProductionTimeMinutes;
+    double averageProductionTimeMinutes;  // positive real number of minutes; not required to be integral
     double yield;
     int currentStock;
 

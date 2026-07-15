@@ -6,23 +6,6 @@
 
 namespace {
 
-bool TryParseInt(const std::string& text, int& outValue) {
-    if (text.empty()) {
-        return false;
-    }
-    try {
-        std::size_t pos = 0;
-        const int value = std::stoi(text, &pos);
-        if (pos != text.size()) {
-            return false;
-        }
-        outValue = value;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
 bool TryParseDouble(const std::string& text, double& outValue) {
     if (text.empty()) {
         return false;
@@ -59,9 +42,9 @@ void SampleController::HandleRegister() {
     }
 
     const std::string avgTimeText = view_.PromptLine("평균 생산시간(분) > ");
-    int averageProductionTimeMinutes = 0;
-    if (!TryParseInt(avgTimeText, averageProductionTimeMinutes) || averageProductionTimeMinutes <= 0) {
-        view_.ShowError("평균 생산시간은 양의 정수여야 합니다");
+    double averageProductionTimeMinutes = 0;
+    if (!TryParseDouble(avgTimeText, averageProductionTimeMinutes) || averageProductionTimeMinutes <= 0) {
+        view_.ShowError("평균 생산시간은 0보다 큰 숫자여야 합니다");
         return;
     }
 
