@@ -7,6 +7,32 @@
 
 OPEN QUESTION #1 MUST BE CONFIRMED BY THE HUMAN REVIEWER BEFORE THIS PHASE IS IMPLEMENTED: the architecture leaves open whether the no-new-VS-project-files constraint bans a SampleOrderCore static library or only a second .exe, and explicitly says this must be resolved before the phase plan commits to either the shared-sources-compiled-twice approach or a library split. This phase plan assumes (pending that sign-off) the shared-sources answer: SampleOrderSystemTests.vcxproj adds explicit <ClCompile>/<ClInclude> items by relative path at SampleOrderSystem's non-UI sources, compiling them a second time into the test binary rather than linking a shared static library. If the reviewer instead picks the library-split answer, this phase's mechanism (and every later phase's vcxproj-maintenance step, see phases 2-9) changes and must be replanned before work starts — do not proceed past this phase without that confirmation being recorded. Once confirmed, stand up the native Visual Studio test project referenced from SampleOrderSystem.slnx, vendor Catch2 v3 as catch_amalgamated.hpp/.cpp, and get a trivial passing test compiling/linking against SampleOrderSystem's non-UI sources. Also implement the IClock abstract interface, its SystemClock production implementation, and a FakeClock test double whose time is advanced explicitly. This phase is pure infrastructure: every later phase's TDD cycle depends on the test project compiling and running, and Services/Repositories/tests throughout the plan take an IClock& rather than reading the wall clock directly.
 
+## Superseded: test framework switched from Catch2 to GoogleTest/GoogleMock
+
+Everything below describing vendoring Catch2 (`catch_amalgamated.hpp`/`.cpp`, `CATCH_CONFIG_MAIN`,
+`TEST_CASE`/`SECTION`/`REQUIRE`) is historical — the user has since installed the `gmock` NuGet
+package (v1.11.0, bundling GoogleTest + GoogleMock) into both `SampleOrderSystem.vcxproj` and
+`SampleOrderSystemTests.vcxproj` via `packages.config`, and requires GoogleTest/GoogleMock for all
+tests, retroactively including this phase's. The actual, current state of this phase's deliverable:
+
+- `catch_amalgamated.hpp`/`.cpp` were removed; GoogleTest/GoogleMock are brought in via the `gmock`
+  NuGet package's `build/native/gmock.targets` import (already wired into both `.vcxproj` files —
+  it adds the include path and compiles `gtest-all.cc`/`gmock-all.cc` automatically). No files need
+  vendoring or manual downloading.
+- `SampleOrderSystemTests/TestMain.cpp` supplies `main()`:
+  `::testing::InitGoogleMock(&argc, argv); return RUN_ALL_TESTS();` — replaces Catch2's built-in
+  runner.
+- `ClockTests.cpp` was converted from `TEST_CASE`/`REQUIRE`/`SECTION` to GoogleTest's
+  `TEST(Suite, Case)` / `EXPECT_EQ`/`EXPECT_TRUE`/`EXPECT_THROW` (each former `SECTION` became its
+  own `TEST`, since GoogleTest has no direct `SECTION` equivalent and each section here was
+  independent, fresh-state test logic anyway).
+- `IClock`/`SystemClock`/`FakeClock` themselves are unchanged — this was purely a test-harness
+  swap, not a production-code change.
+
+The still-useful parts of the narrative below (the `IClock`/`SystemClock`/`FakeClock` design,
+namespace convention, test *scenarios* to cover) remain accurate; only the literal Catch2 API
+calls and vcxproj vendoring mechanics are superseded.
+
 ## Detail
 
 ## OPEN QUESTION #1 — must be confirmed by the human reviewer before this phase is implemented

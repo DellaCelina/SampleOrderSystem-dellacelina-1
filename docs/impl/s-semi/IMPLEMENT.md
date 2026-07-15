@@ -13,6 +13,17 @@ literal reading already adopted by ARCHITECTURE.md's Key Design Decision #1 — 
 relative-path `<ClCompile>`/`<ClInclude>` items. Phase 1 assumes this; it is not an open decision
 blocking implementation.
 
+**Test framework superseded mid-implementation:** the user has installed the `gmock` NuGet package
+(v1.11.0, bundling GoogleTest + GoogleMock) into both `SampleOrderSystem.vcxproj` and
+`SampleOrderSystemTests.vcxproj` and requires GoogleTest/GoogleMock for all tests. This supersedes
+every phase DETAIL.md's original Catch2-based test framework references (Key Design Decision #7 in
+ARCHITECTURE.md and phase-1's DETAIL.md are updated accordingly) — wherever a phase's DETAIL.md
+still says `TEST_CASE`/`SECTION`/`REQUIRE`/Catch2, read it as `TEST`/`EXPECT_*`/`ASSERT_*`
+GoogleTest syntax instead (and use GoogleMock `MOCK_METHOD`/matchers wherever a phase needs to mock
+a collaborator, e.g. `IClock` or a repository, rather than hand-rolling a fake). Phase 1 and
+Phase 2's existing tests have been converted; every phase from here on is written directly against
+GoogleTest/GoogleMock.
+
 ## Phases
 
 - [x] Phase 1: Test project scaffolding + Clock abstraction (deps: none)

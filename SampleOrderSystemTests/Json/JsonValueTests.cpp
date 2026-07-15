@@ -1,64 +1,64 @@
-#include "catch_amalgamated.hpp"
+#include <gtest/gtest.h>
 
 #include "Json/JsonValue.h"
 
 #include <stdexcept>
 #include <string>
 
-TEST_CASE("Default-constructed JsonValue is Null", "[json][json-value]") {
+TEST(JsonValueTest, DefaultConstructedJsonValueIsNull) {
     JsonValue value;
 
-    REQUIRE(value.Type() == JsonType::Null);
-    REQUIRE(value.IsNull());
-    REQUIRE_FALSE(value.IsBool());
-    REQUIRE_FALSE(value.IsNumber());
-    REQUIRE_FALSE(value.IsString());
-    REQUIRE_FALSE(value.IsArray());
-    REQUIRE_FALSE(value.IsObject());
+    EXPECT_EQ(value.Type(), JsonType::Null);
+    EXPECT_TRUE(value.IsNull());
+    EXPECT_FALSE(value.IsBool());
+    EXPECT_FALSE(value.IsNumber());
+    EXPECT_FALSE(value.IsString());
+    EXPECT_FALSE(value.IsArray());
+    EXPECT_FALSE(value.IsObject());
 }
 
-TEST_CASE("JsonValue(nullptr) is also Null", "[json][json-value]") {
+TEST(JsonValueTest, JsonValueNullptrIsAlsoNull) {
     JsonValue value(nullptr);
 
-    REQUIRE(value.Type() == JsonType::Null);
-    REQUIRE(value.IsNull());
+    EXPECT_EQ(value.Type(), JsonType::Null);
+    EXPECT_TRUE(value.IsNull());
 }
 
-TEST_CASE("JsonValue bool construction", "[json][json-value]") {
+TEST(JsonValueTest, JsonValueBoolConstruction) {
     JsonValue trueValue(true);
     JsonValue falseValue(false);
 
-    REQUIRE(trueValue.Type() == JsonType::Bool);
-    REQUIRE(trueValue.IsBool());
-    REQUIRE(trueValue.AsBool() == true);
+    EXPECT_EQ(trueValue.Type(), JsonType::Bool);
+    EXPECT_TRUE(trueValue.IsBool());
+    EXPECT_EQ(trueValue.AsBool(), true);
 
-    REQUIRE(falseValue.Type() == JsonType::Bool);
-    REQUIRE(falseValue.AsBool() == false);
+    EXPECT_EQ(falseValue.Type(), JsonType::Bool);
+    EXPECT_EQ(falseValue.AsBool(), false);
 }
 
-TEST_CASE("JsonValue number construction (double and int overload)", "[json][json-value]") {
+TEST(JsonValueTest, JsonValueNumberConstructionDoubleAndIntOverload) {
     JsonValue doubleValue(3.5);
     JsonValue intValue(5);
 
-    REQUIRE(doubleValue.Type() == JsonType::Number);
-    REQUIRE(doubleValue.AsNumber() == 3.5);
+    EXPECT_EQ(doubleValue.Type(), JsonType::Number);
+    EXPECT_EQ(doubleValue.AsNumber(), 3.5);
 
-    REQUIRE(intValue.Type() == JsonType::Number);
-    REQUIRE(intValue.AsNumber() == 5.0);
+    EXPECT_EQ(intValue.Type(), JsonType::Number);
+    EXPECT_EQ(intValue.AsNumber(), 5.0);
 }
 
-TEST_CASE("JsonValue string construction (std::string and const char*)", "[json][json-value]") {
+TEST(JsonValueTest, JsonValueStringConstructionStdStringAndConstCharPtr) {
     JsonValue stringValue(std::string("hello"));
     JsonValue charValue("hello");
 
-    REQUIRE(stringValue.Type() == JsonType::String);
-    REQUIRE(stringValue.AsString() == "hello");
+    EXPECT_EQ(stringValue.Type(), JsonType::String);
+    EXPECT_EQ(stringValue.AsString(), "hello");
 
-    REQUIRE(charValue.Type() == JsonType::String);
-    REQUIRE(charValue.AsString() == "hello");
+    EXPECT_EQ(charValue.Type(), JsonType::String);
+    EXPECT_EQ(charValue.AsString(), "hello");
 }
 
-TEST_CASE("MakeArray then Push heterogeneous values", "[json][json-value]") {
+TEST(JsonValueTest, MakeArrayThenPushHeterogeneousValues) {
     JsonValue array = JsonValue::MakeArray();
     JsonValue nested = JsonValue::MakeObject();
     nested.Set("k", "v");
@@ -67,169 +67,179 @@ TEST_CASE("MakeArray then Push heterogeneous values", "[json][json-value]") {
     array.Push(JsonValue("two"));
     array.Push(nested);
 
-    REQUIRE(array.Type() == JsonType::Array);
-    REQUIRE(array.AsArray().size() == 3);
-    REQUIRE(array.AsArray()[0].AsNumber() == 1.0);
-    REQUIRE(array.AsArray()[1].AsString() == "two");
-    REQUIRE(array.AsArray()[2].IsObject());
-    REQUIRE(array.AsArray()[2].Get("k").AsString() == "v");
+    EXPECT_EQ(array.Type(), JsonType::Array);
+    EXPECT_EQ(array.AsArray().size(), 3);
+    EXPECT_EQ(array.AsArray()[0].AsNumber(), 1.0);
+    EXPECT_EQ(array.AsArray()[1].AsString(), "two");
+    EXPECT_TRUE(array.AsArray()[2].IsObject());
+    EXPECT_EQ(array.AsArray()[2].Get("k").AsString(), "v");
 }
 
-TEST_CASE("MakeArray with zero Push calls is an empty Array, not Null", "[json][json-value]") {
+TEST(JsonValueTest, MakeArrayWithZeroPushCallsIsAnEmptyArrayNotNull) {
     JsonValue array = JsonValue::MakeArray();
 
-    REQUIRE(array.Type() == JsonType::Array);
-    REQUIRE(array.AsArray().empty());
+    EXPECT_EQ(array.Type(), JsonType::Array);
+    EXPECT_TRUE(array.AsArray().empty());
 }
 
-TEST_CASE("MakeObject then Set preserves exact insertion order", "[json][json-value]") {
+TEST(JsonValueTest, MakeObjectThenSetPreservesExactInsertionOrder) {
     JsonValue object = JsonValue::MakeObject();
     object.Set("a", 1);
     object.Set("b", "two");
     object.Set("c", true);
 
     const auto& entries = object.AsObject();
-    REQUIRE(entries.size() == 3);
-    REQUIRE(entries[0].first == "a");
-    REQUIRE(entries[1].first == "b");
-    REQUIRE(entries[2].first == "c");
-    REQUIRE(entries[0].second.AsNumber() == 1.0);
-    REQUIRE(entries[1].second.AsString() == "two");
-    REQUIRE(entries[2].second.AsBool() == true);
+    EXPECT_EQ(entries.size(), 3);
+    EXPECT_EQ(entries[0].first, "a");
+    EXPECT_EQ(entries[1].first, "b");
+    EXPECT_EQ(entries[2].first, "c");
+    EXPECT_EQ(entries[0].second.AsNumber(), 1.0);
+    EXPECT_EQ(entries[1].second.AsString(), "two");
+    EXPECT_EQ(entries[2].second.AsBool(), true);
 }
 
-TEST_CASE("Set on an existing key replaces value in place without moving position", "[json][json-value]") {
+TEST(JsonValueTest, SetOnAnExistingKeyReplacesValueInPlaceWithoutMovingPosition) {
     JsonValue object = JsonValue::MakeObject();
     object.Set("a", 1);
     object.Set("b", "two");
     object.Set("a", 2);
 
     const auto& entries = object.AsObject();
-    REQUIRE(entries.size() == 2);
-    REQUIRE(entries[0].first == "a");
-    REQUIRE(entries[0].second.AsNumber() == 2.0);
-    REQUIRE(entries[1].first == "b");
+    EXPECT_EQ(entries.size(), 2);
+    EXPECT_EQ(entries[0].first, "a");
+    EXPECT_EQ(entries[0].second.AsNumber(), 2.0);
+    EXPECT_EQ(entries[1].first, "b");
 }
 
-TEST_CASE("Has/Get/TryGet on a present key", "[json][json-value]") {
+TEST(JsonValueTest, HasGetTryGetOnAPresentKey) {
     JsonValue object = JsonValue::MakeObject();
     object.Set("a", 42);
 
-    REQUIRE(object.Has("a"));
-    REQUIRE(object.Get("a").AsNumber() == 42.0);
+    EXPECT_TRUE(object.Has("a"));
+    EXPECT_EQ(object.Get("a").AsNumber(), 42.0);
 
     const JsonValue* found = object.TryGet("a");
-    REQUIRE(found != nullptr);
-    REQUIRE(found->AsNumber() == 42.0);
+    EXPECT_NE(found, nullptr);
+    EXPECT_EQ(found->AsNumber(), 42.0);
 }
 
-TEST_CASE("Has/TryGet/Get on an absent key", "[json][json-value]") {
+TEST(JsonValueTest, HasTryGetGetOnAnAbsentKey) {
     JsonValue object = JsonValue::MakeObject();
     object.Set("a", 42);
 
-    REQUIRE_FALSE(object.Has("missing"));
-    REQUIRE(object.TryGet("missing") == nullptr);
-    REQUIRE_THROWS_AS(object.Get("missing"), std::out_of_range);
+    EXPECT_FALSE(object.Has("missing"));
+    EXPECT_EQ(object.TryGet("missing"), nullptr);
+    EXPECT_THROW(object.Get("missing"), std::out_of_range);
 }
 
-TEST_CASE("Has/TryGet/Get on a non-Object value", "[json][json-value]") {
+TEST(JsonValueTest, HasTryGetGetOnANonObjectValue) {
     JsonValue number(5.0);
 
-    REQUIRE_FALSE(number.Has("a"));
-    REQUIRE(number.TryGet("a") == nullptr);
-    REQUIRE_THROWS_AS(number.Get("a"), std::out_of_range);
+    EXPECT_FALSE(number.Has("a"));
+    EXPECT_EQ(number.TryGet("a"), nullptr);
+    EXPECT_THROW(number.Get("a"), std::out_of_range);
 }
 
-TEST_CASE("Wrong-type accessors throw JsonTypeException", "[json][json-value]") {
-    SECTION("AsBool on Number") {
-        JsonValue value(5.0);
-        REQUIRE_THROWS_AS(value.AsBool(), JsonTypeException);
-    }
-    SECTION("AsNumber on String") {
-        JsonValue value("hi");
-        REQUIRE_THROWS_AS(value.AsNumber(), JsonTypeException);
-    }
-    SECTION("AsString on Bool") {
-        JsonValue value(true);
-        REQUIRE_THROWS_AS(value.AsString(), JsonTypeException);
-    }
-    SECTION("AsArray on Object") {
-        JsonValue value = JsonValue::MakeObject();
-        REQUIRE_THROWS_AS(value.AsArray(), JsonTypeException);
-    }
-    SECTION("AsObject on Array") {
-        JsonValue value = JsonValue::MakeArray();
-        REQUIRE_THROWS_AS(value.AsObject(), JsonTypeException);
-    }
+TEST(JsonValueTest, WrongTypeAccessorsThrowJsonTypeException_AsBoolOnNumber) {
+    JsonValue value(5.0);
+    EXPECT_THROW(value.AsBool(), JsonTypeException);
 }
 
-TEST_CASE("Push on a non-Array value throws and does not convert", "[json][json-value]") {
-    SECTION("default-constructed Null") {
-        JsonValue value;
-        REQUIRE_THROWS_AS(value.Push(JsonValue(1)), JsonTypeException);
-        REQUIRE(value.Type() == JsonType::Null);
-    }
-    SECTION("Number") {
-        JsonValue value(5.0);
-        REQUIRE_THROWS_AS(value.Push(JsonValue(1)), JsonTypeException);
-        REQUIRE(value.Type() == JsonType::Number);
-    }
+TEST(JsonValueTest, WrongTypeAccessorsThrowJsonTypeException_AsNumberOnString) {
+    JsonValue value("hi");
+    EXPECT_THROW(value.AsNumber(), JsonTypeException);
 }
 
-TEST_CASE("Set on a non-Object value throws and does not convert", "[json][json-value]") {
+TEST(JsonValueTest, WrongTypeAccessorsThrowJsonTypeException_AsStringOnBool) {
+    JsonValue value(true);
+    EXPECT_THROW(value.AsString(), JsonTypeException);
+}
+
+TEST(JsonValueTest, WrongTypeAccessorsThrowJsonTypeException_AsArrayOnObject) {
+    JsonValue value = JsonValue::MakeObject();
+    EXPECT_THROW(value.AsArray(), JsonTypeException);
+}
+
+TEST(JsonValueTest, WrongTypeAccessorsThrowJsonTypeException_AsObjectOnArray) {
+    JsonValue value = JsonValue::MakeArray();
+    EXPECT_THROW(value.AsObject(), JsonTypeException);
+}
+
+TEST(JsonValueTest, PushOnANonArrayValueThrowsAndDoesNotConvert_DefaultConstructedNull) {
     JsonValue value;
-    REQUIRE_THROWS_AS(value.Set("a", 1), JsonTypeException);
-    REQUIRE(value.Type() == JsonType::Null);
+    EXPECT_THROW(value.Push(JsonValue(1)), JsonTypeException);
+    EXPECT_EQ(value.Type(), JsonType::Null);
 }
 
-TEST_CASE("operator== is a structural, order-sensitive deep equality", "[json][json-value]") {
-    auto build = []() {
-        JsonValue inner = JsonValue::MakeObject();
-        inner.Set("x", 1);
-        inner.Set("y", 2);
-
-        JsonValue array = JsonValue::MakeArray();
-        array.Push(inner);
-        array.Push(JsonValue("leaf"));
-
-        JsonValue outer = JsonValue::MakeObject();
-        outer.Set("items", array);
-        return outer;
-    };
-
-    JsonValue a = build();
-    JsonValue b = build();
-    REQUIRE(a == b);
-
-    SECTION("changing a leaf value makes them unequal") {
-        JsonValue& innerArray = b.AsObject()[0].second.AsArray()[0];
-        innerArray.AsObject()[0].second = JsonValue(999);
-        REQUIRE(a != b);
-    }
-
-    SECTION("changing key order makes them unequal") {
-        JsonValue reordered = JsonValue::MakeObject();
-        JsonValue inner = JsonValue::MakeObject();
-        inner.Set("y", 2);
-        inner.Set("x", 1);
-        JsonValue array = JsonValue::MakeArray();
-        array.Push(inner);
-        array.Push(JsonValue("leaf"));
-        reordered.Set("items", array);
-
-        REQUIRE(a != reordered);
-    }
+TEST(JsonValueTest, PushOnANonArrayValueThrowsAndDoesNotConvert_Number) {
+    JsonValue value(5.0);
+    EXPECT_THROW(value.Push(JsonValue(1)), JsonTypeException);
+    EXPECT_EQ(value.Type(), JsonType::Number);
 }
 
-TEST_CASE("Copying a JsonValue is independent of the original (value semantics)", "[json][json-value]") {
+TEST(JsonValueTest, SetOnANonObjectValueThrowsAndDoesNotConvert) {
+    JsonValue value;
+    EXPECT_THROW(value.Set("a", 1), JsonTypeException);
+    EXPECT_EQ(value.Type(), JsonType::Null);
+}
+
+namespace {
+
+JsonValue BuildJsonValueEqualityFixture() {
+    JsonValue inner = JsonValue::MakeObject();
+    inner.Set("x", 1);
+    inner.Set("y", 2);
+
+    JsonValue array = JsonValue::MakeArray();
+    array.Push(inner);
+    array.Push(JsonValue("leaf"));
+
+    JsonValue outer = JsonValue::MakeObject();
+    outer.Set("items", array);
+    return outer;
+}
+
+}  // namespace
+
+TEST(JsonValueTest, OperatorEqualsIsAStructuralOrderSensitiveDeepEquality) {
+    JsonValue a = BuildJsonValueEqualityFixture();
+    JsonValue b = BuildJsonValueEqualityFixture();
+    EXPECT_EQ(a, b);
+}
+
+TEST(JsonValueTest, OperatorEqualsIsAStructuralOrderSensitiveDeepEquality_ChangingALeafValueMakesThemUnequal) {
+    JsonValue a = BuildJsonValueEqualityFixture();
+    JsonValue b = BuildJsonValueEqualityFixture();
+
+    JsonValue& innerArray = b.AsObject()[0].second.AsArray()[0];
+    innerArray.AsObject()[0].second = JsonValue(999);
+    EXPECT_NE(a, b);
+}
+
+TEST(JsonValueTest, OperatorEqualsIsAStructuralOrderSensitiveDeepEquality_ChangingKeyOrderMakesThemUnequal) {
+    JsonValue a = BuildJsonValueEqualityFixture();
+
+    JsonValue reordered = JsonValue::MakeObject();
+    JsonValue inner = JsonValue::MakeObject();
+    inner.Set("y", 2);
+    inner.Set("x", 1);
+    JsonValue array = JsonValue::MakeArray();
+    array.Push(inner);
+    array.Push(JsonValue("leaf"));
+    reordered.Set("items", array);
+
+    EXPECT_NE(a, reordered);
+}
+
+TEST(JsonValueTest, CopyingAJsonValueIsIndependentOfTheOriginalValueSemantics) {
     JsonValue original = JsonValue::MakeArray();
     original.Push(JsonValue(1));
 
     JsonValue copy = original;
     copy.AsArray().push_back(JsonValue(2));
 
-    REQUIRE(original.AsArray().size() == 1);
-    REQUIRE(copy.AsArray().size() == 2);
+    EXPECT_EQ(original.AsArray().size(), 1);
+    EXPECT_EQ(copy.AsArray().size(), 2);
 
     JsonValue originalObject = JsonValue::MakeObject();
     originalObject.Set("a", 1);
@@ -237,6 +247,6 @@ TEST_CASE("Copying a JsonValue is independent of the original (value semantics)"
     JsonValue copyObject = originalObject;
     copyObject.Set("b", 2);
 
-    REQUIRE(originalObject.AsObject().size() == 1);
-    REQUIRE(copyObject.AsObject().size() == 2);
+    EXPECT_EQ(originalObject.AsObject().size(), 1);
+    EXPECT_EQ(copyObject.AsObject().size(), 2);
 }
