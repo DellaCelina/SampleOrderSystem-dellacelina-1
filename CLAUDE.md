@@ -81,3 +81,5 @@ for building out this system rather than writing ad hoc code — check current s
   implementation of this system.
 - `docs/ARCHITECTURE.md` — Stage 2 output: component design, data flow, and key design decisions
   grounded in the real repo, satisfying `docs/REQUIREMENT.md`.
+- `docs/impl/s-semi/IMPLEMENT.md` — Stage 3 output: 14-phase dependency-aware TDD implementation
+  plan satisfying `docs/ARCHITECTURE.md`; each phase's full detail and status live alongside it.
