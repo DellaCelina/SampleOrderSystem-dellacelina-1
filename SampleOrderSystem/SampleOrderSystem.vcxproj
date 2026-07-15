@@ -181,6 +181,22 @@
     <ClCompile Include="Views\SampleView.cpp" />
     <ClInclude Include="Controllers\SampleController.h" />
     <ClCompile Include="Controllers\SampleController.cpp" />
+    <ClInclude Include="Views\OrderView.h" />
+    <ClCompile Include="Views\OrderView.cpp" />
+    <ClInclude Include="Controllers\OrderController.h" />
+    <ClCompile Include="Controllers\OrderController.cpp" />
+    <ClInclude Include="Views\MonitoringView.h" />
+    <ClCompile Include="Views\MonitoringView.cpp" />
+    <ClInclude Include="Views\ProductionLineView.h" />
+    <ClCompile Include="Views\ProductionLineView.cpp" />
+    <ClInclude Include="Controllers\MonitoringController.h" />
+    <ClCompile Include="Controllers\MonitoringController.cpp" />
+    <ClInclude Include="Views\DataMonitorView.h" />
+    <ClCompile Include="Views\DataMonitorView.cpp" />
+    <ClInclude Include="Controllers\DataMonitorController.h" />
+    <ClCompile Include="Controllers\DataMonitorController.cpp" />
+    <ClInclude Include="Controllers\DummyDataController.h" />
+    <ClCompile Include="Controllers\DummyDataController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

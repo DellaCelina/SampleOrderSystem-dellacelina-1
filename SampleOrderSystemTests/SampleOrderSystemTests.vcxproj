@@ -166,6 +166,14 @@
     <ClInclude Include="..\SampleOrderSystem\Services\DummyDataGenerator.h" />
     <ClInclude Include="..\SampleOrderSystem\Views\SampleView.h" />
     <ClInclude Include="..\SampleOrderSystem\Controllers\SampleController.h" />
+    <ClInclude Include="..\SampleOrderSystem\Views\OrderView.h" />
+    <ClInclude Include="..\SampleOrderSystem\Controllers\OrderController.h" />
+    <ClInclude Include="..\SampleOrderSystem\Views\MonitoringView.h" />
+    <ClInclude Include="..\SampleOrderSystem\Views\ProductionLineView.h" />
+    <ClInclude Include="..\SampleOrderSystem\Controllers\MonitoringController.h" />
+    <ClInclude Include="..\SampleOrderSystem\Views\DataMonitorView.h" />
+    <ClInclude Include="..\SampleOrderSystem\Controllers\DataMonitorController.h" />
+    <ClInclude Include="..\SampleOrderSystem\Controllers\DummyDataController.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestMain.cpp" />
@@ -197,6 +205,21 @@
     <ClCompile Include="..\SampleOrderSystem\Services\DummyDataGenerator.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Views\SampleView.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Controllers\SampleController.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Views\OrderView.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Controllers\OrderController.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Views\MonitoringView.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Views\ProductionLineView.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Controllers\MonitoringController.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Views\DataMonitorView.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Controllers\DataMonitorController.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Controllers\DummyDataController.cpp" />
+    <ClCompile Include="Views\OrderViewTests.cpp" />
+    <ClCompile Include="Controllers\OrderControllerTests.cpp" />
+    <ClCompile Include="Views\MonitoringViewTests.cpp" />
+    <ClCompile Include="Controllers\MonitoringControllerTests.cpp" />
+    <ClCompile Include="Views\DataMonitorViewTests.cpp" />
+    <ClCompile Include="Controllers\DataMonitorControllerTests.cpp" />
+    <ClCompile Include="Controllers\DummyDataControllerTests.cpp" />
     <ClCompile Include="Persistence\SchemaTests.cpp" />
     <ClCompile Include="Persistence\SchemaValidatorTests.cpp" />
     <ClCompile Include="Persistence\JsonFileStoreTests.cpp" />
