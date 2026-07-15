@@ -1,3 +1,6 @@
+# Course assignment materials (not part of the project)
+*.pdf
+
 # Visual Studio user-specific files
 *.suo
 *.user
