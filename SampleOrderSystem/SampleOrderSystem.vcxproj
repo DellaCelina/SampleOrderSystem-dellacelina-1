@@ -167,6 +167,12 @@
     <ClCompile Include="Repositories\OrderRepository.cpp" />
     <ClInclude Include="Repositories\ProductionQueueRepository.h" />
     <ClCompile Include="Repositories\ProductionQueueRepository.cpp" />
+    <ClInclude Include="Services\ProductionService.h" />
+    <ClCompile Include="Services\ProductionService.cpp" />
+    <ClInclude Include="Views\SampleView.h" />
+    <ClCompile Include="Views\SampleView.cpp" />
+    <ClInclude Include="Controllers\SampleController.h" />
+    <ClCompile Include="Controllers\SampleController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
