@@ -18,7 +18,7 @@ This phase has two independent-but-coupled deliverables:
 
 This phase does **not** implement `ComputeCompletionTime`/FIFO-chain math (that's `ProductionService`, a later Services-layer phase) — it only guarantees a `ProductionQueueEntry`'s two `TimePoint` fields survive a `ToJson`→`FromJson` round trip exactly, which the later FIFO-chain tests will rely on when they construct entries with a `FakeClock` and check completion-time arithmetic.
 
-Namespace assumption: this plan uses `SampleOrderSystem::Core` (for `IClock`/`Iso8601`), `SampleOrderSystem::Json` (for `JsonValue`), and `SampleOrderSystem::Models` (for the three structs), matching the folder layout in `docs/ARCHITECTURE.md`. If phase-1's `IClock.h` or phase-2's `JsonValue.h` actually landed under different namespace names, use those instead — the load-bearing contract here is the function/struct **signatures and field names**, not the exact namespace spelling.
+**Namespace correction:** phase-1 (`IClock`, `SystemClock`, `FakeClock`) and phase-2 (`JsonValue`, `JsonParser`, `JsonWriter`) both actually landed in the **global namespace**, not under `SampleOrderSystem::Core`/`SampleOrderSystem::Json` as earlier drafts of this plan assumed. This phase follows that same real, established convention: `Sample`, `Order`, `ProductionQueueEntry`, `TimePointToIso8601`, `ParseIso8601` are all declared in the global namespace too — no `SampleOrderSystem::Models`/`SampleOrderSystem::Core` wrapper. `IClock::Now()` itself returns `std::chrono::system_clock::time_point` directly (no `IClock::TimePoint` alias exists), so every signature below uses that type spelled out in full rather than a shorthand alias.
 
 ## `Core/Iso8601.h` / `Core/Iso8601.cpp`
 
@@ -30,7 +30,6 @@ Namespace assumption: this plan uses `SampleOrderSystem::Core` (for `IClock`/`Is
 #include <string>
 #include "IClock.h"
 
-namespace SampleOrderSystem::Core {
 
 // Formats tp as a UTC ISO-8601 string with whole-second precision and a literal "Z" suffix,
 // e.g. "2026-07-15T10:30:00Z" — always exactly 20 characters, always zero-padded
@@ -38,7 +37,7 @@ namespace SampleOrderSystem::Core {
 // than "Z", never fractional seconds (production time is computed in whole minutes, per
 // CLAUDE.md/REQUIREMENT.md, so nothing in this system needs sub-second precision).
 // Any sub-second component in tp is truncated (floored, not rounded) and discarded.
-std::string TimePointToIso8601(IClock::TimePoint tp);
+std::string TimePointToIso8601(std::chrono::system_clock::time_point tp);
 
 // Parses a string that must exactly match the "YYYY-MM-DDTHH:MM:SSZ" grammar produced by
 // TimePointToIso8601 (fixed length 20, '-' at positions 4/7, 'T' at 10, ':' at 13/16, 'Z' at 19,
@@ -49,9 +48,8 @@ std::string TimePointToIso8601(IClock::TimePoint tp);
 // though this system never emits an out-of-range value itself, since a hand-edited/corrupted
 // JSON file could contain one and this must fail loudly rather than construct a nonsensical
 // TimePoint).
-IClock::TimePoint ParseIso8601(const std::string& text);
+std::chrono::system_clock::time_point ParseIso8601(const std::string& text);
 
-} // namespace SampleOrderSystem::Core
 ```
 
 ### Implementation notes (binding — these are the decisions a TDD implementer should not have to re-derive)
@@ -89,7 +87,6 @@ IClock::TimePoint ParseIso8601(const std::string& text);
 #include <string>
 #include "../Json/JsonValue.h"
 
-namespace SampleOrderSystem::Models {
 
 struct Sample {
     std::string sampleId;
@@ -98,11 +95,10 @@ struct Sample {
     double yield;
     int currentStock;
 
-    Json::JsonValue ToJson() const;
-    static Sample FromJson(const Json::JsonValue& json);
+    JsonValue ToJson() const;
+    static Sample FromJson(const JsonValue& json);
 };
 
-} // namespace SampleOrderSystem::Models
 ```
 
 JSON object field names (must match `schema/sample.schema.json`, which phase-3 introduces but whose field names are already fixed by `docs/ARCHITECTURE.md`): `"sampleId"` (string), `"name"` (string), `"averageProductionTimeMinutes"` (number, whole minutes), `"yield"` (number), `"currentStock"` (number).
@@ -124,7 +120,6 @@ JSON object field names (must match `schema/sample.schema.json`, which phase-3 i
 #include <string>
 #include "../Json/JsonValue.h"
 
-namespace SampleOrderSystem::Models {
 
 enum class OrderStatus { Reserved, Confirmed, Producing, Released, Rejected };
 
@@ -146,11 +141,10 @@ struct Order {
     int quantity;
     OrderStatus status;
 
-    Json::JsonValue ToJson() const;
-    static Order FromJson(const Json::JsonValue& json);
+    JsonValue ToJson() const;
+    static Order FromJson(const JsonValue& json);
 };
 
-} // namespace SampleOrderSystem::Models
 ```
 
 JSON object field names: `"orderNumber"` (string), `"sampleId"` (string), `"customerName"` (string), `"quantity"` (number), `"status"` (string, one of the five canonical values above).
@@ -175,26 +169,24 @@ JSON object field names: `"orderNumber"` (string), `"sampleId"` (string), `"cust
 #include "../Core/IClock.h"
 #include "../Json/JsonValue.h"
 
-namespace SampleOrderSystem::Models {
 
 struct ProductionQueueEntry {
     std::string orderNumber;
     std::string sampleId;
     int shortfallQuantity;
     int actualProducedQuantity;
-    Core::IClock::TimePoint enqueuedAt;
-    Core::IClock::TimePoint expectedCompletionAt;
+    std::chrono::system_clock::time_point enqueuedAt;
+    std::chrono::system_clock::time_point expectedCompletionAt;
 
-    Json::JsonValue ToJson() const;
-    static ProductionQueueEntry FromJson(const Json::JsonValue& json);
+    JsonValue ToJson() const;
+    static ProductionQueueEntry FromJson(const JsonValue& json);
 };
 
-} // namespace SampleOrderSystem::Models
 ```
 
-JSON object field names: `"orderNumber"` (string), `"sampleId"` (string), `"shortfallQuantity"` (number), `"actualProducedQuantity"` (number), `"enqueuedAt"` (string, ISO-8601 via `Core::TimePointToIso8601`/`ParseIso8601`), `"expectedCompletionAt"` (string, ISO-8601, same path).
+JSON object field names: `"orderNumber"` (string), `"sampleId"` (string), `"shortfallQuantity"` (number), `"actualProducedQuantity"` (number), `"enqueuedAt"` (string, ISO-8601 via `TimePointToIso8601`/`ParseIso8601`), `"expectedCompletionAt"` (string, ISO-8601, same path).
 
-`ToJson` calls `Core::TimePointToIso8601` for both timestamp fields; `FromJson` calls `Core::ParseIso8601` for both, letting any `std::invalid_argument` it throws propagate uncaught out of `ProductionQueueEntry::FromJson` — this is the one place in this phase where a malformed record is very plausible in practice (a hand-edited or truncated JSON file), and the fail-fast propagation is intentional so a later `JsonFileStore::Load` (phase-3) can catch it as a whole-table load failure per `docs/ARCHITECTURE.md`'s "whole-table, fail-fast" design decision.
+`ToJson` calls `TimePointToIso8601` for both timestamp fields; `FromJson` calls `ParseIso8601` for both, letting any `std::invalid_argument` it throws propagate uncaught out of `ProductionQueueEntry::FromJson` — this is the one place in this phase where a malformed record is very plausible in practice (a hand-edited or truncated JSON file), and the fail-fast propagation is intentional so a later `JsonFileStore::Load` (phase-3) can catch it as a whole-table load failure per `docs/ARCHITECTURE.md`'s "whole-table, fail-fast" design decision.
 
 Same type-level-only boundary as the other two models applies to the non-timestamp fields (missing/mistyped field → `std::invalid_argument`; out-of-range-but-well-typed numeric values like a negative `shortfallQuantity` are not rejected here).
 
@@ -219,6 +211,6 @@ plus the corresponding entries in `SampleOrderSystem.vcxproj` itself (the same f
 
 ## Dependency/parallelism notes
 
-- Depends on phase-1 (`Core::IClock`, specifically its `TimePoint` type alias) and phase-2 (`Json::JsonValue`'s object/string/number construction and accessors) — both must be genuinely stable interfaces before this phase starts, since every signature above is written directly against them.
+- Depends on phase-1 (`IClock`, specifically its `Now()` return type `std::chrono::system_clock::time_point`) and phase-2 (`JsonValue`'s object/string/number construction and accessors) — both must be genuinely stable interfaces before this phase starts, since every signature above is written directly against them.
 - Does **not** depend on phase-3 (`JsonFileStore`/`SchemaValidator`/`Schema`) — this phase's models are tested by constructing `JsonValue`s directly in unit tests, never by going through a file-backed store. This is a real, not just claimed, independence: nothing in `Iso8601.*` or `Models/*.cpp` includes or calls anything under `Persistence/`. Phase-3 and phase-4 touch disjoint file sets (`Persistence/*` vs. `Core/Iso8601.*` + `Models/*`) apart from both needing to add lines to the two `.vcxproj` files — that shared-file edit is the one place a merge conflict is plausible if both phases land at the same time; keep each phase's `.vcxproj` diff to *only* its own new item entries (don't reformat/reorder existing `<ItemGroup>` contents) to keep that conflict trivial to resolve.
 - Later phases that depend on this one: `Repositories/SampleRepository`, `Repositories/OrderRepository`, and the production-queue repository (not yet phased) all consume `Sample::ToJson/FromJson`, `Order::ToJson/FromJson`, `ProductionQueueEntry::ToJson/FromJson` directly; `Services/ProductionService` consumes `ProductionQueueEntry`'s `TimePoint` fields and, transitively through them, this phase's `Iso8601` round-trip guarantee for its FIFO-chain completion-time tests.
