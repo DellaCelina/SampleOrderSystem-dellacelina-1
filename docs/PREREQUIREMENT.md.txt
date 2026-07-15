@@ -29,9 +29,9 @@ confirmed로 넘어가있는 상태에서도, 재고는 표시되지만, 출고 
 Json parsing 기능: https://github.com/DellaCelina/DataPersistence-dellacelina-1
  - Json의 parsing 및 file 저장에 대한 기능은 위 repo의 구현을 따와서 구현
 User interface 기능: https://github.com/DellaCelina/ConsoleMVC-dellacelina-1
- - MVC 구조로 CLI를 구성할 것이며, 위 repo의 MVC 구조를 따와서 구현
+ - MVC 구조로 CLI를 구성할 것이며, 위 repo의 MVC 구조, demo에서의 기능을 따와서 구현
 Data 관리 기능: https://github.com/DellaCelina/DataMonitor-dellacelina-1
- - Json을 활용한 Database처럼 동작시켜야하므로 위 repo의 구현을 참고
+ - Json을 활용한 Database처럼 동작시켜야하므로(시료 관리, 생산현황 관리 등) 위 repo의 구현을 참고
  Dummy data 생성 기능: https://github.com/DellaCelina/DummyDataGenerator-dellacelina-1
  - test를 위한 dummy json data를 생성하는 repo이며, test 구성시 위 repo 구현을 참고해서 구현
 

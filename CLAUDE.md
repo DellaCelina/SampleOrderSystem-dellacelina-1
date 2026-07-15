@@ -74,3 +74,8 @@ runs feature work through a gated Requirement → Architecture → Phase Plan �
 Final Review lifecycle via subagent workflows, with a human review gate between each stage. Use it
 for building out this system rather than writing ad hoc code — check current stage from
 `docs/` + git state each time, per that skill's own instructions, rather than assuming from memory.
+
+## Docs
+
+- `docs/REQUIREMENT.md` — Stage 1 output: checkable acceptance criteria for the first end-to-end
+  implementation of this system.
