@@ -161,6 +161,12 @@
     <ClCompile Include="Persistence\SchemaValidator.cpp" />
     <ClInclude Include="Persistence\JsonFileStore.h" />
     <ClCompile Include="Persistence\JsonFileStore.cpp" />
+    <ClInclude Include="Repositories\SampleRepository.h" />
+    <ClCompile Include="Repositories\SampleRepository.cpp" />
+    <ClInclude Include="Repositories\OrderRepository.h" />
+    <ClCompile Include="Repositories\OrderRepository.cpp" />
+    <ClInclude Include="Repositories\ProductionQueueRepository.h" />
+    <ClCompile Include="Repositories\ProductionQueueRepository.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

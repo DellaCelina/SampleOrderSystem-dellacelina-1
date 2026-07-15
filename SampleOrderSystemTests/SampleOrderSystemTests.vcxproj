@@ -156,6 +156,9 @@
     <ClInclude Include="..\SampleOrderSystem\Persistence\Schema.h" />
     <ClInclude Include="..\SampleOrderSystem\Persistence\SchemaValidator.h" />
     <ClInclude Include="..\SampleOrderSystem\Persistence\JsonFileStore.h" />
+    <ClInclude Include="..\SampleOrderSystem\Repositories\SampleRepository.h" />
+    <ClInclude Include="..\SampleOrderSystem\Repositories\OrderRepository.h" />
+    <ClInclude Include="..\SampleOrderSystem\Repositories\ProductionQueueRepository.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestMain.cpp" />
@@ -177,9 +180,15 @@
     <ClCompile Include="Models\ProductionQueueEntryTests.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Persistence\SchemaValidator.cpp" />
     <ClCompile Include="..\SampleOrderSystem\Persistence\JsonFileStore.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Repositories\SampleRepository.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Repositories\OrderRepository.cpp" />
+    <ClCompile Include="..\SampleOrderSystem\Repositories\ProductionQueueRepository.cpp" />
     <ClCompile Include="Persistence\SchemaTests.cpp" />
     <ClCompile Include="Persistence\SchemaValidatorTests.cpp" />
     <ClCompile Include="Persistence\JsonFileStoreTests.cpp" />
+    <ClCompile Include="Repositories\SampleRepositoryTests.cpp" />
+    <ClCompile Include="Repositories\OrderRepositoryTests.cpp" />
+    <ClCompile Include="Repositories\ProductionQueueRepositoryTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
