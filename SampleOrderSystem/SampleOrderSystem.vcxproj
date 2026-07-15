@@ -197,6 +197,9 @@
     <ClCompile Include="Controllers\DataMonitorController.cpp" />
     <ClInclude Include="Controllers\DummyDataController.h" />
     <ClCompile Include="Controllers\DummyDataController.cpp" />
+    <ClInclude Include="Controllers\MainMenuController.h" />
+    <ClCompile Include="Controllers\MainMenuController.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -210,5 +213,18 @@
       <ErrorText>이 프로젝트는 이 컴퓨터에 없는 NuGet 패키지를 참조합니다. 해당 패키지를 다운로드하려면 NuGet 패키지 복원을 사용하십시오. 자세한 내용은 http://go.microsoft.com/fwlink/?LinkID=322105를 참조하십시오. 누락된 파일은 {0}입니다.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\gmock.1.11.0\build\native\gmock.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\gmock.1.11.0\build\native\gmock.targets'))" />
+  </Target>
+  <!-- Phase 9: copy the repo-root data/ and schema/ folders next to the
+       produced executable so the exe-relative path resolution in main.cpp
+       finds them regardless of build configuration/platform. -->
+  <Target Name="CopyDataAndSchema" AfterTargets="Build">
+    <ItemGroup>
+      <DataFiles Include="$(ProjectDir)..\data\**\*" Condition="Exists('$(ProjectDir)..\data')" />
+      <SchemaFiles Include="$(ProjectDir)..\schema\**\*" Condition="Exists('$(ProjectDir)..\schema')" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutDir)data" Condition="Exists('$(ProjectDir)..\data')" />
+    <Copy SourceFiles="@(DataFiles)" DestinationFolder="$(OutDir)data\%(RecursiveDir)" Condition="Exists('$(ProjectDir)..\data')" />
+    <MakeDir Directories="$(OutDir)schema" Condition="Exists('$(ProjectDir)..\schema')" />
+    <Copy SourceFiles="@(SchemaFiles)" DestinationFolder="$(OutDir)schema\%(RecursiveDir)" Condition="Exists('$(ProjectDir)..\schema')" />
   </Target>
 </Project>
