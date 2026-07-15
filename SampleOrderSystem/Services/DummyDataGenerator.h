@@ -37,6 +37,10 @@ public:
 
 private:
     OrderStatus PickStatusForSlot(int slotIndex, int totalCount) const;
+    // Unclamped: sample.currentStock - claimed, which may be negative if claims already
+    // exceed stock. Internal use only (TopUpStockIfNeeded needs the true deficit magnitude);
+    // callers wanting "how much is actually available" should use UnclaimedStock() instead.
+    int RawUnclaimedStock(const Sample& sample) const;
     int UnclaimedStock(const Sample& sample) const;
     void RecordClaim(const std::string& sampleId, int quantity);
     void TopUpStockIfNeeded(Sample& sample, int minUnclaimed);

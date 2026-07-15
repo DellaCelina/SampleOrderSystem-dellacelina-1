@@ -313,17 +313,23 @@ TEST_F(OrderServiceTest, ApproveOfAnUnknownOrderNumberFails) {
 }
 
 TEST_F(OrderServiceTest, ApproveOfANonReservedOrderFailsWithoutMutatingStockOrQueue) {
-    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 100)));
-    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 10, OrderStatus::Confirmed});
-    FakeClock clock;
+    const std::vector<OrderStatus> nonReservedStatuses = {
+        OrderStatus::Confirmed, OrderStatus::Producing, OrderStatus::Released, OrderStatus::Rejected};
+    int counter = 0;
+    for (OrderStatus status : nonReservedStatuses) {
+        const std::string orderNumber = "ORD-000" + std::to_string(++counter);
+        ASSERT_TRUE(m_samples->Add(MakeSample("SMP-" + std::to_string(counter), "GaAs Wafer", 30, 1.0, 100)));
+        m_orders->Add(Order{orderNumber, "SMP-" + std::to_string(counter), "Acme", 10, status});
+        FakeClock clock;
 
-    OrderServiceResult<Order> result = m_service->Approve("ORD-0001", clock);
+        OrderServiceResult<Order> result = m_service->Approve(orderNumber, clock);
 
-    ASSERT_FALSE(result.Ok());
-    EXPECT_EQ(result.Error().code, OrderServiceErrorCode::InvalidStatusForApproval);
-    EXPECT_EQ(m_orders->FindByOrderNumber("ORD-0001")->status, OrderStatus::Confirmed);
-    EXPECT_EQ(m_samples->FindById("SMP-001")->currentStock, 100);
-    EXPECT_TRUE(m_queue->FindAllInOrder().empty());
+        ASSERT_FALSE(result.Ok()) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(result.Error().code, OrderServiceErrorCode::InvalidStatusForApproval) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(m_orders->FindByOrderNumber(orderNumber)->status, status) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(m_samples->FindById("SMP-" + std::to_string(counter))->currentStock, 100) << "status: " << static_cast<int>(status);
+        EXPECT_TRUE(m_queue->FindAllInOrder().empty()) << "status: " << static_cast<int>(status);
+    }
 }
 
 // ---- Reject ----
@@ -341,14 +347,20 @@ TEST_F(OrderServiceTest, RejectOfAReservedOrderSucceedsAndRemovesItFromPendingAp
 }
 
 TEST_F(OrderServiceTest, RejectOfANonReservedOrderFailsAndLeavesStatusUnchanged) {
-    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 100)));
-    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 10, OrderStatus::Confirmed});
+    const std::vector<OrderStatus> nonReservedStatuses = {
+        OrderStatus::Confirmed, OrderStatus::Producing, OrderStatus::Released, OrderStatus::Rejected};
+    int counter = 0;
+    for (OrderStatus status : nonReservedStatuses) {
+        const std::string orderNumber = "ORD-000" + std::to_string(++counter);
+        ASSERT_TRUE(m_samples->Add(MakeSample("SMP-" + std::to_string(counter), "GaAs Wafer", 30, 1.0, 100)));
+        m_orders->Add(Order{orderNumber, "SMP-" + std::to_string(counter), "Acme", 10, status});
 
-    OrderServiceResult<Order> result = m_service->Reject("ORD-0001");
+        OrderServiceResult<Order> result = m_service->Reject(orderNumber);
 
-    ASSERT_FALSE(result.Ok());
-    EXPECT_EQ(result.Error().code, OrderServiceErrorCode::InvalidStatusForRejection);
-    EXPECT_EQ(m_orders->FindByOrderNumber("ORD-0001")->status, OrderStatus::Confirmed);
+        ASSERT_FALSE(result.Ok()) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(result.Error().code, OrderServiceErrorCode::InvalidStatusForRejection) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(m_orders->FindByOrderNumber(orderNumber)->status, status) << "status: " << static_cast<int>(status);
+    }
 }
 
 TEST_F(OrderServiceTest, RejectOfAnUnknownOrderNumberFails) {
@@ -373,15 +385,21 @@ TEST_F(OrderServiceTest, ReleaseOfAConfirmedOrderDecrementsStockAndMarksReleased
 }
 
 TEST_F(OrderServiceTest, ReleaseOfANonConfirmedOrderFailsAndLeavesStockAndStatusUnchanged) {
-    ASSERT_TRUE(m_samples->Add(MakeSample("SMP-001", "GaAs Wafer", 30, 1.0, 80)));
-    m_orders->Add(Order{"ORD-0001", "SMP-001", "Acme", 30, OrderStatus::Producing});
+    const std::vector<OrderStatus> nonConfirmedStatuses = {
+        OrderStatus::Reserved, OrderStatus::Producing, OrderStatus::Released, OrderStatus::Rejected};
+    int counter = 0;
+    for (OrderStatus status : nonConfirmedStatuses) {
+        const std::string orderNumber = "ORD-000" + std::to_string(++counter);
+        ASSERT_TRUE(m_samples->Add(MakeSample("SMP-" + std::to_string(counter), "GaAs Wafer", 30, 1.0, 80)));
+        m_orders->Add(Order{orderNumber, "SMP-" + std::to_string(counter), "Acme", 30, status});
 
-    OrderServiceResult<Order> result = m_service->Release("ORD-0001");
+        OrderServiceResult<Order> result = m_service->Release(orderNumber);
 
-    ASSERT_FALSE(result.Ok());
-    EXPECT_EQ(result.Error().code, OrderServiceErrorCode::InvalidStatusForRelease);
-    EXPECT_EQ(m_orders->FindByOrderNumber("ORD-0001")->status, OrderStatus::Producing);
-    EXPECT_EQ(m_samples->FindById("SMP-001")->currentStock, 80);
+        ASSERT_FALSE(result.Ok()) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(result.Error().code, OrderServiceErrorCode::InvalidStatusForRelease) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(m_orders->FindByOrderNumber(orderNumber)->status, status) << "status: " << static_cast<int>(status);
+        EXPECT_EQ(m_samples->FindById("SMP-" + std::to_string(counter))->currentStock, 80) << "status: " << static_cast<int>(status);
+    }
 }
 
 TEST_F(OrderServiceTest, ReleaseOfAnUnknownOrderNumberFails) {

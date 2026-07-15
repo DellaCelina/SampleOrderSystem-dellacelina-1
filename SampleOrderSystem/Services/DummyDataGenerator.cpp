@@ -29,13 +29,17 @@ OrderStatus DummyDataGenerator::PickStatusForSlot(int slotIndex, int totalCount)
     return kSequence[slotIndex % 5];
 }
 
-int DummyDataGenerator::UnclaimedStock(const Sample& sample) const {
+int DummyDataGenerator::RawUnclaimedStock(const Sample& sample) const {
     int claimed = 0;
     auto it = runningClaims_.find(sample.sampleId);
     if (it != runningClaims_.end()) {
         claimed = it->second;
     }
-    int unclaimed = sample.currentStock - claimed;
+    return sample.currentStock - claimed;
+}
+
+int DummyDataGenerator::UnclaimedStock(const Sample& sample) const {
+    int unclaimed = RawUnclaimedStock(sample);
     return unclaimed > 0 ? unclaimed : 0;
 }
 
@@ -44,11 +48,15 @@ void DummyDataGenerator::RecordClaim(const std::string& sampleId, int quantity) 
 }
 
 void DummyDataGenerator::TopUpStockIfNeeded(Sample& sample, int minUnclaimed) {
-    int currentUnclaimed = UnclaimedStock(sample);
-    if (currentUnclaimed >= minUnclaimed) {
+    // Must use the raw (unclamped) deficit here, not UnclaimedStock()'s floor-0 view: when
+    // claims already exceed stock by more than minUnclaimed, computing delta off the clamped
+    // value under-tops-up (it only adds minUnclaimed, not enough to also cover the deficit
+    // beyond zero), leaving the real unclaimed amount still <= 0 after "topping up".
+    int rawUnclaimed = RawUnclaimedStock(sample);
+    if (rawUnclaimed >= minUnclaimed) {
         return;
     }
-    int delta = minUnclaimed - currentUnclaimed;
+    int delta = minUnclaimed - rawUnclaimed;
     sample.currentStock += delta;
     sampleRepo_.IncreaseStock(sample.sampleId, delta);
 }

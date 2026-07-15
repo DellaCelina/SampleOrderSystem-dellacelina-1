@@ -223,3 +223,68 @@ TEST_F(DummyDataGeneratorTest, GenerateAllWithAFixedSeedProducesSchemaValidRecor
         EXPECT_EQ(queue1[i].expectedCompletionAt, queue2[i].expectedCompletionAt);
     }
 }
+
+// Regression test for the FIFO-chaining invariant: each Producing entry generated within the
+// same GenerateOrders call must chain its completion time off the queue's actual tail (the
+// previous entry's expectedCompletionAt), not off wall-clock time alone.
+TEST_F(DummyDataGeneratorTest, ProducingOrdersGeneratedInTheSameCallChainCompletionTimeOffTheQueueTail) {
+    Repos repos = MakeRepos("run1");
+    FakeClock clock;
+    DummyDataGenerator generator(*repos.samples, *repos.orders, *repos.queue, clock, /*seed=*/42);
+
+    std::vector<std::string> sampleIds = generator.GenerateSamples(3);
+    generator.GenerateOrders(10, sampleIds);  // slots 0..9; slot % 5 == 2 (Producing) -> exactly 2 entries
+
+    std::vector<ProductionQueueEntry> queue = repos.queue->FindAllInOrder();
+    ASSERT_EQ(queue.size(), 2u);
+
+    for (size_t i = 1; i < queue.size(); ++i) {
+        std::optional<Sample> sample = repos.samples->FindById(queue[i].sampleId);
+        ASSERT_TRUE(sample.has_value());
+        int durationMinutes = ProductionService::ComputeProductionDurationMinutes(
+            queue[i].actualProducedQuantity, sample->averageProductionTimeMinutes);
+        std::chrono::system_clock::time_point expected = ProductionService::ComputeCompletionTime(
+            queue[i].enqueuedAt, queue[i - 1].expectedCompletionAt, durationMinutes);
+        EXPECT_EQ(queue[i].expectedCompletionAt, expected)
+            << "queue entry " << i << " (" << queue[i].orderNumber << ") didn't chain off the previous tail";
+    }
+}
+
+// Regression test: the constructor must seed runningClaims_ from pre-existing
+// Confirmed/Producing orders, otherwise a freshly-constructed generator would treat all of an
+// already-claimed sample's stock as unclaimed and could double-allocate it.
+TEST_F(DummyDataGeneratorTest, ConstructorSeedsRunningClaimsFromPreExistingConfirmedOrdersSoNewClaimsNeverExceedStock) {
+    Repos repos = MakeRepos("run1");
+    FakeClock clock;
+
+    Sample sample;
+    sample.sampleId = "SMP-0001";
+    sample.name = "Existing";
+    sample.averageProductionTimeMinutes = 10;
+    sample.yield = 1.0;
+    sample.currentStock = 100;
+    ASSERT_TRUE(repos.samples->Add(sample));
+
+    Order preExistingConfirmed;
+    // OrderRepository derives its NextOrderNumber() sequence once at construction, before this
+    // record exists; consume the sequence via NextOrderNumber() (not a hardcoded "ORD-0001") so the
+    // generator's own later NextOrderNumber() calls don't collide with this pre-existing record.
+    preExistingConfirmed.orderNumber = repos.orders->NextOrderNumber();
+    preExistingConfirmed.sampleId = "SMP-0001";
+    preExistingConfirmed.customerName = "Acme";
+    preExistingConfirmed.quantity = 90;
+    preExistingConfirmed.status = OrderStatus::Confirmed;
+    repos.orders->Add(preExistingConfirmed);
+
+    DummyDataGenerator generator(*repos.samples, *repos.orders, *repos.queue, clock, /*seed=*/7);
+    generator.GenerateOrders(2, {"SMP-0001"});  // slots 0,1: slot 1 % 5 == 1 -> exactly one Confirmed order
+
+    int totalConfirmedQuantity = preExistingConfirmed.quantity;
+    for (const Order& o : repos.orders->FindAll()) {
+        if (o.orderNumber != preExistingConfirmed.orderNumber && o.status == OrderStatus::Confirmed) {
+            totalConfirmedQuantity += o.quantity;
+        }
+    }
+    EXPECT_LE(totalConfirmedQuantity, sample.currentStock)
+        << "unclaimed-stock computation ignored the pre-existing Confirmed order's claim";
+}
