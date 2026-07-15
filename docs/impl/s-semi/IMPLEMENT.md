@@ -31,15 +31,18 @@ GoogleTest/GoogleMock.
 - [x] Phase 3: Schema documents + persistence layer (deps: Phase 2)
 - [x] Phase 4: Domain models + ISO-8601 timestamp conversion (deps: Phase 1, Phase 2)
 - [x] Phase 5: Repositories + order-number sequence derivation (deps: Phase 3, Phase 4)
-- [ ] Phase 6: ProductionService — shortfall math, FIFO completion time, lazy settlement (deps: Phase 1, Phase 5)
-- [ ] Phase 7: OrderService — submit/list/approve/reject/release (deps: Phase 5, Phase 6)
-- [ ] Phase 8: MonitoringService + ProductionLineViewService (deps: Phase 5, Phase 6)
-- [ ] Phase 9: DummyDataGenerator (deps: Phase 4, Phase 5, Phase 6)
-- [ ] Phase 10: Sample UI — SampleView + SampleController (deps: Phase 5)
-- [ ] Phase 11: Order UI — OrderView + OrderController (deps: Phase 7)
-- [ ] Phase 12: Monitoring & Production Line UI (deps: Phase 8)
-- [ ] Phase 13: Data Monitor & Dummy Data UI (deps: Phase 5, Phase 6, Phase 9)
-- [ ] Phase 14: MainMenuController + main.cpp wiring and CLI flags (deps: Phase 10, 11, 12, 13)
+- [x] Phase 6: ProductionService — shortfall math, FIFO completion time, lazy settlement (deps: Phase 1, Phase 5)
+- [x] Phase 10: Sample UI — SampleView + SampleController (deps: Phase 5)
+- [ ] Phase 7 (consolidated): Remaining services — OrderService, MonitoringService, ProductionLineViewService, DummyDataGenerator (deps: Phase 5, Phase 6)
+- [ ] Phase 8 (consolidated): Remaining UI — Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI (deps: Phase 7)
+- [ ] Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags (deps: Phase 8, Phase 10)
+
+**Consolidation note (post Phase 6/10):** the remaining work was originally split into 7 finer
+phases (old 7/8/9/11/12/13/14) for maximal parallelism, but per explicit user direction the
+per-phase agent overhead was cut by merging what's left into 3 larger phases, run one at a time
+(services -> UI -> main), each still as its own single Red -> Green -> Refactor -> commit -> review
+cycle. The old phase numbers/detail docs are kept as-is and referenced below rather than rewritten,
+since their acceptance-criteria-level detail is still accurate — only the batching/grouping changed.
 
 ## Suggested batching (Stage 4)
 
@@ -51,10 +54,9 @@ Batches are maximal groups of not-yet-done phases whose deps are already committ
 3. **Batch C:** Phase 3 (needs Phase 2)
 4. **Batch D:** Phase 5 (needs Phase 3 + Phase 4)
 5. **Batch E:** Phase 6, Phase 10 (Phase 6 needs Phase 1+5; Phase 10 needs only Phase 5 — disjoint files: Services/ProductionService vs Views+Controllers/Sample*)
-6. **Batch F:** Phase 7, Phase 8 (both need Phase 5+6, disjoint files: OrderService vs Monitoring/ProductionLineViewService)
-7. **Batch G:** Phase 9, Phase 11 (Phase 9 needs Phase 4+5+6; Phase 11 needs Phase 7 — disjoint files)
-8. **Batch H:** Phase 12, Phase 13 (Phase 12 needs Phase 8; Phase 13 needs Phase 5+6+9 — disjoint files)
-9. **Batch I:** Phase 14 (needs 10, 11, 12, 13 — final integration, no parallelism left)
+6. **Batch F:** Phase 7 consolidated — OrderService + MonitoringService/ProductionLineViewService + DummyDataGenerator, implemented as one sequential phase (needs Phase 5+6; no longer split across parallel agents)
+7. **Batch G:** Phase 8 consolidated — Order UI + Monitoring/ProductionLine UI + DataMonitor/DummyData UI, one sequential phase (needs Phase 7)
+8. **Batch H:** Phase 9 consolidated — MainMenuController + main.cpp wiring (needs Phase 8, Phase 10 — final integration, no parallelism left)
 
 All phases share `SampleOrderSystemTests.vcxproj` as a `touches` entry (each phase adds its new
 source files to it). This is a known, accepted overlap — set `overlappingFiles: true` for any
@@ -125,83 +127,51 @@ callable pure functions (not private helpers), since Phase 9 (DummyDataGenerator
 exact same math. Core production-domain logic — must land before Phase 7/8/9. Full detail:
 [phase-06-production-service/DETAIL.md](phase-06-production-service/DETAIL.md).
 
-## Phase 7: OrderService: submit/list/approve/reject/release
+## Phase 7 (consolidated): Remaining services — OrderService, MonitoringService, ProductionLineViewService, DummyDataGenerator
 
 **Depends on:** Phase 5, Phase 6
-**Touches:** `SampleOrderSystem/Services/OrderService.h/.cpp`, test vcxproj
+**Touches:** `SampleOrderSystem/Services/OrderService.h/.cpp`, `MonitoringService.h/.cpp`, `ProductionLineViewService.h/.cpp`, `DummyDataGenerator.h/.cpp`, test vcxproj
 
-`SubmitOrder`, `ListPendingApprovals`, `Approve` (settle-first, then
-`max(0, unclaimed)` decision), `Reject`, `Release`. Covers the 50/100/100 acceptance scenario and
-settle-then-decide ordering. Full detail:
-[phase-07-order-service/DETAIL.md](phase-07-order-service/DETAIL.md).
+Merges the old Phase 7/8/9 into one sequential implementation pass (same file scope, run as a
+single Red -> Green -> Refactor chain instead of three parallel ones, per the consolidation note
+above):
 
-## Phase 8: MonitoringService + ProductionLineViewService
+- **OrderService** — `SubmitOrder`, `ListPendingApprovals`, `Approve` (settle-first, then
+  `max(0, unclaimed)` decision), `Reject`, `Release`. Covers the 50/100/100 acceptance scenario and
+  settle-then-decide ordering. Full detail: [phase-07-order-service/DETAIL.md](phase-07-order-service/DETAIL.md).
+- **MonitoringService + ProductionLineViewService** — both settle-first, read-only query services.
+  Full detail: [phase-08-monitoring-production-view-service/DETAIL.md](phase-08-monitoring-production-view-service/DETAIL.md).
+- **DummyDataGenerator** — schema-driven random Sample/Order generation across all five statuses,
+  writing directly through repositories but **calling ProductionService's pure compute functions**
+  (`ComputeShortfall`/`ComputeActualQuantity`/`ComputeCompletionTime`) to keep generated `Producing`
+  orders' queue entries consistent with real ones. Full detail:
+  [phase-09-dummy-data-generator/DETAIL.md](phase-09-dummy-data-generator/DETAIL.md).
 
-**Depends on:** Phase 5, Phase 6
-**Touches:** `SampleOrderSystem/Services/MonitoringService.h/.cpp`, `ProductionLineViewService.h/.cpp`, test vcxproj
-
-Both settle-first, read-only query services; no interdependency with each other or with
-Phase 7 — can run in parallel with it. Full detail:
-[phase-08-monitoring-production-view-service/DETAIL.md](phase-08-monitoring-production-view-service/DETAIL.md).
-
-## Phase 9: DummyDataGenerator
-
-**Depends on:** Phase 4, Phase 5, Phase 6
-**Touches:** `SampleOrderSystem/Services/DummyDataGenerator.h/.cpp`, test vcxproj
-
-Schema-driven random Sample/Order generation across all five statuses, writing directly through
-repositories (not through OrderService/ProductionService orchestration methods) but **calling
-ProductionService's pure compute functions** (`ComputeShortfall`/`ComputeActualQuantity`/
-`ComputeCompletionTime`) to keep generated `Producing` orders' queue entries consistent with real
-ones — this is why Phase 9 genuinely depends on Phase 6, not just Phase 4/5. Can still proceed in
-parallel with Phase 7/8. Full detail:
-[phase-09-dummy-data-generator/DETAIL.md](phase-09-dummy-data-generator/DETAIL.md).
-
-## Phase 10: Sample UI (SampleView + SampleController)
-
-**Depends on:** Phase 5
-**Touches:** `SampleOrderSystem/Views/SampleView.h/.cpp`, `Controllers/SampleController.h/.cpp`
-
-Console rendering + input handling for sample registration and list/search, calling
-`SampleRepository` directly. Independent of Order/Production/Monitoring — parallelizable with
-Phases 6-9 and 11-13. Full detail: [phase-10-sample-ui/DETAIL.md](phase-10-sample-ui/DETAIL.md).
-
-## Phase 11: Order UI (OrderView + OrderController)
+## Phase 8 (consolidated): Remaining UI — Order UI, Monitoring & Production Line UI, Data Monitor & Dummy Data UI
 
 **Depends on:** Phase 7
-**Touches:** `SampleOrderSystem/Views/OrderView.h/.cpp`, `Controllers/OrderController.h/.cpp`
+**Touches:** `SampleOrderSystem/Views/OrderView.h/.cpp`, `MonitoringView.h/.cpp`, `ProductionLineView.h/.cpp`, `DataMonitorView.h/.cpp`, `Controllers/OrderController.h/.cpp`, `MonitoringController.h/.cpp`, `DataMonitorController.h/.cpp`, `DummyDataController.h/.cpp`, test vcxproj
 
-Console rendering + controller for submission/pending-list/approve/reject/release, wired to
-`OrderService`. Independent of Phase 10/12/13. Full detail:
-[phase-11-order-ui/DETAIL.md](phase-11-order-ui/DETAIL.md).
+Merges the old Phase 11/12/13 into one sequential implementation pass:
 
-## Phase 12: Monitoring & Production Line UI
+- **Order UI** — console rendering + controller for submission/pending-list/approve/reject/release,
+  wired to `OrderService`. Full detail: [phase-11-order-ui/DETAIL.md](phase-11-order-ui/DETAIL.md).
+- **Monitoring & Production Line UI** — console views for status counts, stock/Depleted-InStock
+  labels, and production-line head+tail display, plus the controller calling
+  `MonitoringService`/`ProductionLineViewService`. Full detail:
+  [phase-12-monitoring-production-ui/DETAIL.md](phase-12-monitoring-production-ui/DETAIL.md).
+- **Data Monitor & Dummy Data UI** — `DataMonitorView`/`DataMonitorController` (settle-first, then
+  render current JSON state) and `DummyDataController` (invokes `DummyDataGenerator` outside the
+  interactive menus). Full detail:
+  [phase-13-data-monitor-dummy-ui/DETAIL.md](phase-13-data-monitor-dummy-ui/DETAIL.md).
 
-**Depends on:** Phase 8
-**Touches:** `SampleOrderSystem/Views/MonitoringView.h/.cpp`, `ProductionLineView.h/.cpp`, `Controllers/MonitoringController.h/.cpp`
+## Phase 9 (consolidated): Main wiring — MainMenuController + main.cpp + CLI flags
 
-Console views for status counts, stock/Depleted-InStock labels, and production-line head+tail
-display, plus the controller calling `MonitoringService`/`ProductionLineViewService`. Independent
-of Phases 10, 11, 13. Full detail:
-[phase-12-monitoring-production-ui/DETAIL.md](phase-12-monitoring-production-ui/DETAIL.md).
-
-## Phase 13: Data Monitor & Dummy Data UI
-
-**Depends on:** Phase 5, Phase 6, Phase 9
-**Touches:** `SampleOrderSystem/Views/DataMonitorView.h/.cpp`, `Controllers/DataMonitorController.h/.cpp`, `Controllers/DummyDataController.h/.cpp`
-
-`DataMonitorView`/`DataMonitorController` (settle-first, then render current JSON state) and
-`DummyDataController` (invokes `DummyDataGenerator` outside the interactive menus). Independent of
-Phases 10-12. Full detail:
-[phase-13-data-monitor-dummy-ui/DETAIL.md](phase-13-data-monitor-dummy-ui/DETAIL.md).
-
-## Phase 14: MainMenuController + main.cpp wiring and CLI flags
-
-**Depends on:** Phase 10, Phase 11, Phase 12, Phase 13
+**Depends on:** Phase 8, Phase 10
 **Touches:** `SampleOrderSystem/Controllers/MainMenuController.h/.cpp`, `SampleOrderSystem/main.cpp`
 
-Wires everything together: constructs `SystemClock` + all repositories/services, exposes every
-feature via `MainMenuController`'s interactive loop, and supports `--dummy-data`/`--data-monitor`
-CLI flags that run directly and exit. Pins down `data/`/`schema/` resolution relative to the
-executable path. Final integration point — no parallelism left after this. Full detail:
-[phase-14-main-wiring/DETAIL.md](phase-14-main-wiring/DETAIL.md).
+Same scope as the old Phase 14: wires everything together — constructs `SystemClock` + all
+repositories/services, exposes every feature via `MainMenuController`'s interactive loop, and
+supports `--dummy-data`/`--data-monitor` CLI flags that run directly and exit. Pins down
+`data/`/`schema/` resolution relative to the executable path. Final integration point — no
+parallelism left after this. Full detail: [phase-14-main-wiring/DETAIL.md](phase-14-main-wiring/DETAIL.md).
