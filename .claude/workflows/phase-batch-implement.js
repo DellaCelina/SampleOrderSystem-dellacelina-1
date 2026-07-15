@@ -20,7 +20,7 @@ const VERIFY_SCHEMA = {
   required: ['passed', 'summary', 'filesChanged', 'concerns'],
 }
 
-// args.phases: array of { id, name, detail, touches, deps } — caller (the skill) is responsible for
+// args.phases: array of { id, name, detail, touches, deps } - caller (the skill) is responsible for
 // only including phases in one call that have no dependency on each other and don't touch overlapping files.
 // args.repoPath, args.requirementMarkdown, args.architectureMarkdown are shared context.
 
@@ -37,7 +37,7 @@ const results = await pipeline(
   // 4-1 Red
   (phase) =>
     agent(
-      `Write unit test(s) for this implementation phase, in the repo at ${A.repoPath}. It's expected/fine if they fail or don't compile yet — a phase in Red just needs tests that actually exercise the target behavior.
+      `Write unit test(s) for this implementation phase, in the repo at ${A.repoPath}. It's expected/fine if they fail or don't compile yet - a phase in Red just needs tests that actually exercise the target behavior.
 
 Phase: ${phase.name} (id: ${phase.id})
 Detail:
@@ -53,7 +53,7 @@ Find and follow the repo's existing test setup/conventions before adding new one
   // 4-2 Green
   (redSummary, phase) =>
     agent(
-      `Implement this phase in the repo at ${A.repoPath} so the unit tests just written pass. Keep it minimal — don't reach into work that belongs to other phases.
+      `Implement this phase in the repo at ${A.repoPath} so the unit tests just written pass. Keep it minimal - don't reach into work that belongs to other phases.
 
 Phase: ${phase.name} (id: ${phase.id})
 Detail:
@@ -72,7 +72,7 @@ Build and actually run the tests to confirm they pass before returning. Return a
   // 4-3 Refactor
   (greenSummary, phase) =>
     agent(
-      `Review the implementation just added for this phase in ${A.repoPath} and refactor anything worth cleaning up — duplication, naming, structure. Re-run the tests afterward and confirm they're still green. If there's genuinely nothing worth refactoring, say so explicitly rather than making busywork changes.
+      `Review the implementation just added for this phase in ${A.repoPath} and refactor anything worth cleaning up - duplication, naming, structure. Re-run the tests afterward and confirm they're still green. If there's genuinely nothing worth refactoring, say so explicitly rather than making busywork changes.
 
 Phase: ${phase.name} (id: ${phase.id})
 What was just implemented:
@@ -87,7 +87,7 @@ Return a summary of what changed (or confirmation nothing needed to) and the pos
   // 4-4 Verify
   (refactorSummary, phase) =>
     agent(
-      `Verify that this phase actually satisfies its intent — not just "tests are green," but that the behavior matches the requirement, architecture, and this phase's own spec. If something is off, say so concretely (don't just say "looks fine").
+      `Verify that this phase actually satisfies its intent - not just "tests are green," but that the behavior matches the requirement, architecture, and this phase's own spec. If something is off, say so concretely (don't just say "looks fine").
 
 Phase: ${phase.name} (id: ${phase.id})
 Phase detail/spec:
