@@ -79,3 +79,5 @@ for building out this system rather than writing ad hoc code — check current s
 
 - `docs/REQUIREMENT.md` — Stage 1 output: checkable acceptance criteria for the first end-to-end
   implementation of this system.
+- `docs/ARCHITECTURE.md` — Stage 2 output: component design, data flow, and key design decisions
+  grounded in the real repo, satisfying `docs/REQUIREMENT.md`.
